@@ -22,6 +22,7 @@ void GuiDisasmAtHook(duint addr, duint cip)
 void GuiSetDebugStateHook(DBGSTATE state)
 {
     LogFunctionName;
+    Bridge::GetInstance()->SetDbgState(state);
     return;
 }
 
@@ -34,7 +35,7 @@ void GuiSetDebugStateFastHook(DBGSTATE state)
 void GuiAddLogMessageHook(const char* msg)
 {
     //LogFunctionName;
-    puts(msg);
+    Bridge::GetInstance()->AddLogMessage(msg);
     return;
 }
 
@@ -359,6 +360,7 @@ bool GuiGetLineWindowHook(const char* title, char* text)
 void GuiAutoCompleteAddCmdHook(const char* cmd)
 {
     LogFunctionName;
+    Bridge::GetInstance()->AutoCompleteAdd(cmd);
     return;
 }
 
@@ -563,7 +565,7 @@ void GuiFocusViewHook(int hWindow)
 bool GuiIsUpdateDisabledHook()
 {
     LogFunctionName;
-    return true;
+    return false;
 }
 
 void GuiUpdateEnableHook(bool updateNow)
@@ -789,178 +791,195 @@ void SetHooker(HMODULE module, const char* name, void* hookedFunction)
 
 #define SET_HOOKER(MODULE, NAME) SetHooker(MODULE, #NAME, NAME ## Hook);
 
-void Bridge::HookAllGui()
+void Bridge::_HookAllGui()
 {
-    SET_HOOKER(bridgeModule, GuiTranslateText);
-    SET_HOOKER(bridgeModule, GuiDisasmAt);
-    SET_HOOKER(bridgeModule, GuiSetDebugState);
-    SET_HOOKER(bridgeModule, GuiSetDebugStateFast);
-    SET_HOOKER(bridgeModule, GuiAddLogMessage);
-    SET_HOOKER(bridgeModule, GuiAddLogMessageHtml);
-    SET_HOOKER(bridgeModule, GuiLogClear);
-    SET_HOOKER(bridgeModule, GuiUpdateAllViews);
-    SET_HOOKER(bridgeModule, GuiUpdateRegisterView);
-    SET_HOOKER(bridgeModule, GuiUpdateDisassemblyView);
-    SET_HOOKER(bridgeModule, GuiUpdateBreakpointsView);
-    SET_HOOKER(bridgeModule, GuiUpdateWindowTitle);
-    SET_HOOKER(bridgeModule, GuiGetWindowHandle);
-    SET_HOOKER(bridgeModule, GuiDumpAt);
-    SET_HOOKER(bridgeModule, GuiScriptAdd);
-    SET_HOOKER(bridgeModule, GuiScriptClear);
-    SET_HOOKER(bridgeModule, GuiScriptSetIp);
-    SET_HOOKER(bridgeModule, GuiScriptError);
-    SET_HOOKER(bridgeModule, GuiScriptSetTitle);
-    SET_HOOKER(bridgeModule, GuiScriptSetInfoLine);
-    SET_HOOKER(bridgeModule, GuiScriptMessage);
-    SET_HOOKER(bridgeModule, GuiScriptMsgyn);
-    SET_HOOKER(bridgeModule, GuiScriptEnableHighlighting);
-    SET_HOOKER(bridgeModule, GuiSymbolLogAdd);
-    SET_HOOKER(bridgeModule, GuiSymbolLogClear);
-    SET_HOOKER(bridgeModule, GuiSymbolSetProgress);
-    SET_HOOKER(bridgeModule, GuiSymbolUpdateModuleList);
-    SET_HOOKER(bridgeModule, GuiSymbolRefreshCurrent);
-    SET_HOOKER(bridgeModule, GuiReferenceAddColumn);
-    SET_HOOKER(bridgeModule, GuiReferenceSetRowCount);
-    SET_HOOKER(bridgeModule, GuiReferenceGetRowCount);
-    SET_HOOKER(bridgeModule, GuiReferenceSearchGetRowCount);
-    SET_HOOKER(bridgeModule, GuiReferenceDeleteAllColumns);
-    SET_HOOKER(bridgeModule, GuiReferenceInitialize);
-    SET_HOOKER(bridgeModule, GuiReferenceSetCellContent);
-    SET_HOOKER(bridgeModule, GuiReferenceGetCellContent);
-    SET_HOOKER(bridgeModule, GuiReferenceSearchGetCellContent);
-    SET_HOOKER(bridgeModule, GuiReferenceReloadData);
-    SET_HOOKER(bridgeModule, GuiReferenceSetSingleSelection);
-    SET_HOOKER(bridgeModule, GuiReferenceSetProgress);
-    SET_HOOKER(bridgeModule, GuiReferenceSetCurrentTaskProgress);
-    SET_HOOKER(bridgeModule, GuiReferenceSetSearchStartCol);
-    SET_HOOKER(bridgeModule, GuiStackDumpAt);
-    SET_HOOKER(bridgeModule, GuiUpdateDumpView);
-    SET_HOOKER(bridgeModule, GuiUpdateWatchView);
-    SET_HOOKER(bridgeModule, GuiUpdateThreadView);
-    SET_HOOKER(bridgeModule, GuiUpdateMemoryView);
-    SET_HOOKER(bridgeModule, GuiAddRecentFile);
-    SET_HOOKER(bridgeModule, GuiSetLastException);
-    SET_HOOKER(bridgeModule, GuiGetDisassembly);
-    SET_HOOKER(bridgeModule, GuiMenuAdd);
-    SET_HOOKER(bridgeModule, GuiMenuAddEntry);
-    SET_HOOKER(bridgeModule, GuiMenuAddSeparator);
-    SET_HOOKER(bridgeModule, GuiMenuClear);
-    SET_HOOKER(bridgeModule, GuiMenuRemove);
-    SET_HOOKER(bridgeModule, GuiSelectionGet);
-    SET_HOOKER(bridgeModule, GuiSelectionSet);
-    SET_HOOKER(bridgeModule, GuiGetLineWindow);
-    SET_HOOKER(bridgeModule, GuiAutoCompleteAddCmd);
-    SET_HOOKER(bridgeModule, GuiAutoCompleteDelCmd);
-    SET_HOOKER(bridgeModule, GuiAutoCompleteClearAll);
-    SET_HOOKER(bridgeModule, GuiAddStatusBarMessage);
-    SET_HOOKER(bridgeModule, GuiUpdateSideBar);
-    SET_HOOKER(bridgeModule, GuiRepaintTableView);
-    SET_HOOKER(bridgeModule, GuiUpdatePatches);
-    SET_HOOKER(bridgeModule, GuiUpdateCallStack);
-    SET_HOOKER(bridgeModule, GuiUpdateSEHChain);
-    SET_HOOKER(bridgeModule, GuiLoadSourceFileEx);
-    SET_HOOKER(bridgeModule, GuiMenuSetIcon);
-    SET_HOOKER(bridgeModule, GuiMenuSetEntryIcon);
-    SET_HOOKER(bridgeModule, GuiMenuSetEntryChecked);
-    SET_HOOKER(bridgeModule, GuiMenuSetVisible);
-    SET_HOOKER(bridgeModule, GuiMenuSetEntryVisible);
-    SET_HOOKER(bridgeModule, GuiMenuSetName);
-    SET_HOOKER(bridgeModule, GuiMenuSetEntryName);
-    SET_HOOKER(bridgeModule, GuiMenuSetEntryHotkey);
-    SET_HOOKER(bridgeModule, GuiShowCpu);
-    SET_HOOKER(bridgeModule, GuiAddQWidgetTab);
-    SET_HOOKER(bridgeModule, GuiShowQWidgetTab);
-    SET_HOOKER(bridgeModule, GuiCloseQWidgetTab);
-    SET_HOOKER(bridgeModule, GuiExecuteOnGuiThread);
-    SET_HOOKER(bridgeModule, GuiUpdateTimeWastedCounter);
-    SET_HOOKER(bridgeModule, GuiSetGlobalNotes);
-    SET_HOOKER(bridgeModule, GuiGetGlobalNotes);
-    SET_HOOKER(bridgeModule, GuiSetDebuggeeNotes);
-    SET_HOOKER(bridgeModule, GuiGetDebuggeeNotes);
-    SET_HOOKER(bridgeModule, GuiDumpAtN);
-    SET_HOOKER(bridgeModule, GuiDisplayWarning);
-    SET_HOOKER(bridgeModule, GuiRegisterScriptLanguage);
-    SET_HOOKER(bridgeModule, GuiUnregisterScriptLanguage);
-    SET_HOOKER(bridgeModule, GuiUpdateArgumentWidget);
-    SET_HOOKER(bridgeModule, GuiFocusView);
-    SET_HOOKER(bridgeModule, GuiIsUpdateDisabled);
-    SET_HOOKER(bridgeModule, GuiUpdateEnable);
-    SET_HOOKER(bridgeModule, GuiUpdateDisable);
-    SET_HOOKER(bridgeModule, GuiLoadGraph);
-    SET_HOOKER(bridgeModule, GuiGraphAt);
-    SET_HOOKER(bridgeModule, GuiUpdateGraphView);
-    SET_HOOKER(bridgeModule, GuiDisableLog);
-    SET_HOOKER(bridgeModule, GuiEnableLog);
-    SET_HOOKER(bridgeModule, GuiAddFavouriteTool);
-    SET_HOOKER(bridgeModule, GuiAddFavouriteCommand);
-    SET_HOOKER(bridgeModule, GuiSetFavouriteToolShortcut);
-    SET_HOOKER(bridgeModule, GuiFoldDisassembly);
-    SET_HOOKER(bridgeModule, GuiSelectInMemoryMap);
-    SET_HOOKER(bridgeModule, GuiGetActiveView);
-    SET_HOOKER(bridgeModule, GuiAddInfoLine);
-    SET_HOOKER(bridgeModule, GuiProcessEvents);
-    SET_HOOKER(bridgeModule, GuiTypeAddNode);
-    SET_HOOKER(bridgeModule, GuiTypeClear);
-    SET_HOOKER(bridgeModule, GuiUpdateTypeWidget);
-    SET_HOOKER(bridgeModule, GuiCloseApplication);
-    SET_HOOKER(bridgeModule, GuiFlushLog);
-    SET_HOOKER(bridgeModule, GuiReferenceAddCommand);
-    SET_HOOKER(bridgeModule, GuiUpdateTraceBrowser);
-    SET_HOOKER(bridgeModule, GuiOpenTraceFile);
-    SET_HOOKER(bridgeModule, GuiInvalidateSymbolSource);
-    SET_HOOKER(bridgeModule, GuiExecuteOnGuiThreadEx);
-    SET_HOOKER(bridgeModule, GuiGetCurrentGraph);
-    SET_HOOKER(bridgeModule, GuiShowReferences);
-    SET_HOOKER(bridgeModule, GuiSelectInSymbolsTab);
-    SET_HOOKER(bridgeModule, GuiGotoTrace);
-    SET_HOOKER(bridgeModule, GuiShowTrace);
-    SET_HOOKER(bridgeModule, GuiGetMainThreadId);
+    SET_HOOKER(_bridgeModule, GuiTranslateText);
+    SET_HOOKER(_bridgeModule, GuiDisasmAt);
+    SET_HOOKER(_bridgeModule, GuiSetDebugState);
+    SET_HOOKER(_bridgeModule, GuiSetDebugStateFast);
+    SET_HOOKER(_bridgeModule, GuiAddLogMessage);
+    SET_HOOKER(_bridgeModule, GuiAddLogMessageHtml);
+    SET_HOOKER(_bridgeModule, GuiLogClear);
+    SET_HOOKER(_bridgeModule, GuiUpdateAllViews);
+    SET_HOOKER(_bridgeModule, GuiUpdateRegisterView);
+    SET_HOOKER(_bridgeModule, GuiUpdateDisassemblyView);
+    SET_HOOKER(_bridgeModule, GuiUpdateBreakpointsView);
+    SET_HOOKER(_bridgeModule, GuiUpdateWindowTitle);
+    SET_HOOKER(_bridgeModule, GuiGetWindowHandle);
+    SET_HOOKER(_bridgeModule, GuiDumpAt);
+    SET_HOOKER(_bridgeModule, GuiScriptAdd);
+    SET_HOOKER(_bridgeModule, GuiScriptClear);
+    SET_HOOKER(_bridgeModule, GuiScriptSetIp);
+    SET_HOOKER(_bridgeModule, GuiScriptError);
+    SET_HOOKER(_bridgeModule, GuiScriptSetTitle);
+    SET_HOOKER(_bridgeModule, GuiScriptSetInfoLine);
+    SET_HOOKER(_bridgeModule, GuiScriptMessage);
+    SET_HOOKER(_bridgeModule, GuiScriptMsgyn);
+    SET_HOOKER(_bridgeModule, GuiScriptEnableHighlighting);
+    SET_HOOKER(_bridgeModule, GuiSymbolLogAdd);
+    SET_HOOKER(_bridgeModule, GuiSymbolLogClear);
+    SET_HOOKER(_bridgeModule, GuiSymbolSetProgress);
+    SET_HOOKER(_bridgeModule, GuiSymbolUpdateModuleList);
+    SET_HOOKER(_bridgeModule, GuiSymbolRefreshCurrent);
+    SET_HOOKER(_bridgeModule, GuiReferenceAddColumn);
+    SET_HOOKER(_bridgeModule, GuiReferenceSetRowCount);
+    SET_HOOKER(_bridgeModule, GuiReferenceGetRowCount);
+    SET_HOOKER(_bridgeModule, GuiReferenceSearchGetRowCount);
+    SET_HOOKER(_bridgeModule, GuiReferenceDeleteAllColumns);
+    SET_HOOKER(_bridgeModule, GuiReferenceInitialize);
+    SET_HOOKER(_bridgeModule, GuiReferenceSetCellContent);
+    SET_HOOKER(_bridgeModule, GuiReferenceGetCellContent);
+    SET_HOOKER(_bridgeModule, GuiReferenceSearchGetCellContent);
+    SET_HOOKER(_bridgeModule, GuiReferenceReloadData);
+    SET_HOOKER(_bridgeModule, GuiReferenceSetSingleSelection);
+    SET_HOOKER(_bridgeModule, GuiReferenceSetProgress);
+    SET_HOOKER(_bridgeModule, GuiReferenceSetCurrentTaskProgress);
+    SET_HOOKER(_bridgeModule, GuiReferenceSetSearchStartCol);
+    SET_HOOKER(_bridgeModule, GuiStackDumpAt);
+    SET_HOOKER(_bridgeModule, GuiUpdateDumpView);
+    SET_HOOKER(_bridgeModule, GuiUpdateWatchView);
+    SET_HOOKER(_bridgeModule, GuiUpdateThreadView);
+    SET_HOOKER(_bridgeModule, GuiUpdateMemoryView);
+    SET_HOOKER(_bridgeModule, GuiAddRecentFile);
+    SET_HOOKER(_bridgeModule, GuiSetLastException);
+    SET_HOOKER(_bridgeModule, GuiGetDisassembly);
+    SET_HOOKER(_bridgeModule, GuiMenuAdd);
+    SET_HOOKER(_bridgeModule, GuiMenuAddEntry);
+    SET_HOOKER(_bridgeModule, GuiMenuAddSeparator);
+    SET_HOOKER(_bridgeModule, GuiMenuClear);
+    SET_HOOKER(_bridgeModule, GuiMenuRemove);
+    SET_HOOKER(_bridgeModule, GuiSelectionGet);
+    SET_HOOKER(_bridgeModule, GuiSelectionSet);
+    SET_HOOKER(_bridgeModule, GuiGetLineWindow);
+    SET_HOOKER(_bridgeModule, GuiAutoCompleteAddCmd);
+    SET_HOOKER(_bridgeModule, GuiAutoCompleteDelCmd);
+    SET_HOOKER(_bridgeModule, GuiAutoCompleteClearAll);
+    SET_HOOKER(_bridgeModule, GuiAddStatusBarMessage);
+    SET_HOOKER(_bridgeModule, GuiUpdateSideBar);
+    SET_HOOKER(_bridgeModule, GuiRepaintTableView);
+    SET_HOOKER(_bridgeModule, GuiUpdatePatches);
+    SET_HOOKER(_bridgeModule, GuiUpdateCallStack);
+    SET_HOOKER(_bridgeModule, GuiUpdateSEHChain);
+    SET_HOOKER(_bridgeModule, GuiLoadSourceFileEx);
+    SET_HOOKER(_bridgeModule, GuiMenuSetIcon);
+    SET_HOOKER(_bridgeModule, GuiMenuSetEntryIcon);
+    SET_HOOKER(_bridgeModule, GuiMenuSetEntryChecked);
+    SET_HOOKER(_bridgeModule, GuiMenuSetVisible);
+    SET_HOOKER(_bridgeModule, GuiMenuSetEntryVisible);
+    SET_HOOKER(_bridgeModule, GuiMenuSetName);
+    SET_HOOKER(_bridgeModule, GuiMenuSetEntryName);
+    SET_HOOKER(_bridgeModule, GuiMenuSetEntryHotkey);
+    SET_HOOKER(_bridgeModule, GuiShowCpu);
+    SET_HOOKER(_bridgeModule, GuiAddQWidgetTab);
+    SET_HOOKER(_bridgeModule, GuiShowQWidgetTab);
+    SET_HOOKER(_bridgeModule, GuiCloseQWidgetTab);
+    SET_HOOKER(_bridgeModule, GuiExecuteOnGuiThread);
+    SET_HOOKER(_bridgeModule, GuiUpdateTimeWastedCounter);
+    SET_HOOKER(_bridgeModule, GuiSetGlobalNotes);
+    SET_HOOKER(_bridgeModule, GuiGetGlobalNotes);
+    SET_HOOKER(_bridgeModule, GuiSetDebuggeeNotes);
+    SET_HOOKER(_bridgeModule, GuiGetDebuggeeNotes);
+    SET_HOOKER(_bridgeModule, GuiDumpAtN);
+    SET_HOOKER(_bridgeModule, GuiDisplayWarning);
+    SET_HOOKER(_bridgeModule, GuiRegisterScriptLanguage);
+    SET_HOOKER(_bridgeModule, GuiUnregisterScriptLanguage);
+    SET_HOOKER(_bridgeModule, GuiUpdateArgumentWidget);
+    SET_HOOKER(_bridgeModule, GuiFocusView);
+    SET_HOOKER(_bridgeModule, GuiIsUpdateDisabled);
+    SET_HOOKER(_bridgeModule, GuiUpdateEnable);
+    SET_HOOKER(_bridgeModule, GuiUpdateDisable);
+    SET_HOOKER(_bridgeModule, GuiLoadGraph);
+    SET_HOOKER(_bridgeModule, GuiGraphAt);
+    SET_HOOKER(_bridgeModule, GuiUpdateGraphView);
+    SET_HOOKER(_bridgeModule, GuiDisableLog);
+    SET_HOOKER(_bridgeModule, GuiEnableLog);
+    SET_HOOKER(_bridgeModule, GuiAddFavouriteTool);
+    SET_HOOKER(_bridgeModule, GuiAddFavouriteCommand);
+    SET_HOOKER(_bridgeModule, GuiSetFavouriteToolShortcut);
+    SET_HOOKER(_bridgeModule, GuiFoldDisassembly);
+    SET_HOOKER(_bridgeModule, GuiSelectInMemoryMap);
+    SET_HOOKER(_bridgeModule, GuiGetActiveView);
+    SET_HOOKER(_bridgeModule, GuiAddInfoLine);
+    SET_HOOKER(_bridgeModule, GuiProcessEvents);
+    SET_HOOKER(_bridgeModule, GuiTypeAddNode);
+    SET_HOOKER(_bridgeModule, GuiTypeClear);
+    SET_HOOKER(_bridgeModule, GuiUpdateTypeWidget);
+    SET_HOOKER(_bridgeModule, GuiCloseApplication);
+    SET_HOOKER(_bridgeModule, GuiFlushLog);
+    SET_HOOKER(_bridgeModule, GuiReferenceAddCommand);
+    SET_HOOKER(_bridgeModule, GuiUpdateTraceBrowser);
+    SET_HOOKER(_bridgeModule, GuiOpenTraceFile);
+    SET_HOOKER(_bridgeModule, GuiInvalidateSymbolSource);
+    SET_HOOKER(_bridgeModule, GuiExecuteOnGuiThreadEx);
+    SET_HOOKER(_bridgeModule, GuiGetCurrentGraph);
+    SET_HOOKER(_bridgeModule, GuiShowReferences);
+    SET_HOOKER(_bridgeModule, GuiSelectInSymbolsTab);
+    SET_HOOKER(_bridgeModule, GuiGotoTrace);
+    SET_HOOKER(_bridgeModule, GuiShowTrace);
+    SET_HOOKER(_bridgeModule, GuiGetMainThreadId);
 }
 
 #define GET_ADDRESS(MODULE, NAME) \
-    *((FARPROC*)&NAME) = GetProcAddress(MODULE, #NAME); \
-    if (!NAME) \
+    *((FARPROC*)&_##NAME) = GetProcAddress(MODULE, #NAME); \
+    if (!_##NAME) \
     { \
         puts("Export " #NAME " could not be found!"); \
-        return; \
+        return false; \
     }
 
-Bridge::Bridge() : inited(false)
+bool Bridge::Init()
 {
-    bridgeModule = LoadLibraryA(BRIDGE_LIB_NAME);
-    if (!bridgeModule)
+    _lastLogTime = GetTickCount();
+    _bridgeModule = LoadLibraryA(BRIDGE_LIB_NAME);
+    if (!_bridgeModule)
     {
         puts("Error loading library " BRIDGE_LIB_NAME);
-        return;
+        return false;
     }
-    GET_ADDRESS(bridgeModule, BridgeInit);
-    GET_ADDRESS(bridgeModule, DbgInit);
-    GET_ADDRESS(bridgeModule, DbgCmdExec);
-    GET_ADDRESS(bridgeModule, DbgExit);
+    GET_ADDRESS(_bridgeModule, BridgeInit);
+    GET_ADDRESS(_bridgeModule, DbgInit);
+    GET_ADDRESS(_bridgeModule, DbgCmdExec);
+    GET_ADDRESS(_bridgeModule, DbgExit);
 
-    dbgModule = LoadLibraryA(DBG_LIB_NAME);
-    if (!dbgModule)
+    _dbgModule = LoadLibraryA(DBG_LIB_NAME);
+    if (!_dbgModule)
     {
         puts("Error loading library " DBG_LIB_NAME);
-        return;
+        return false;
     }
-    GET_ADDRESS(dbgModule, _dbg_sendmessage);
+    GET_ADDRESS(_dbgModule, _dbg_sendmessage);
 
-    HookAllGui();
-    BridgeInit();
-    _dbg_sendmessage(DBG_INITIALIZE_LOCKS, nullptr, nullptr);
-    DbgInit();
+    _HookAllGui();
+    _BridgeInit();
+    __dbg_sendmessage(DBG_INITIALIZE_LOCKS, nullptr, nullptr);
+    _DbgInit();
 
-    autoCompleteConfigFp = open_memstream();
-    inited = true;
+    return true;
+}
+
+void Bridge::AutoCompleteAdd(const char* command)
+{
+    size_t pos = 0;
+    std::string s(command);
+    while ((pos = s.find(",")) != std::string::npos) {
+        std::string token = s.substr(0, pos);
+        _commands.push_back(token);
+        s.erase(0, pos + 1);
+    }
+}
+
+void Bridge::AddLogMessage(const char* msg)
+{
+    printf(msg);
+    _lastLogTime = GetTickCount();
 }
 
 Bridge::~Bridge()
 {
-    DbgExit();
-    _dbg_sendmessage(DBG_DEINITIALIZE_LOCKS, nullptr, nullptr);
-    FreeLibrary(bridgeModule);
-    FreeLibrary(dbgModule);
+    _DbgExit();
+    __dbg_sendmessage(DBG_DEINITIALIZE_LOCKS, nullptr, nullptr);
+    FreeLibrary(_bridgeModule);
+    FreeLibrary(_dbgModule);
 }
 
 Bridge* Bridge::instance = nullptr;

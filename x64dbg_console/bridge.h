@@ -1,8 +1,7 @@
 #pragma once
-#ifndef _CRT_SECURE_NO_WARNINGS
-#define _CRT_SECURE_NO_WARNINGS
-#endif
 #include <Windows.h>
+#include <vector>
+#include <string>
 
 #ifdef _WIN64
 typedef unsigned long long duint;
@@ -190,7 +189,7 @@ typedef enum
 
 typedef const wchar_t* (*BRIDGEINIT)();
 typedef const char* (*DBGINIT)();
-typedef bool (*DBGCMDEXEC)(const char* command);
+typedef bool (*DBGDBGCMDEXEC)(const char* command);
 typedef void (*DEBEXIT)();
 typedef duint (*DBGSENDMESSAGE)(DBGMSG type, void* param1, void* param2);
 
@@ -198,30 +197,43 @@ class Bridge
 {
 public:
     static Bridge* GetInstance();
-    static void FreeInstance();
-    virtual ~Bridge();
-    bool ExecCmd(const char* command) { return DbgCmdExec(command); };
-    bool IsInited() { return inited; };
-    void AutoCompleteAdd();
+    void FreeInstance();
+
+    bool Init();
+    bool DbgExecCmd(const char* command) { return _DbgCmdExec(command); };
+    DBGSTATE GetDbgState() { return _dbgState; };
+    DWORD GetLastLogTime() { return _lastLogTime; };
+    
+    // for hook functions
+    const std::vector<std::string>& GetCommands() { return _commands; };
+    void SetDbgState(DBGSTATE state) { _dbgState = state; };
+    void AutoCompleteAdd(const char* command);
+    void AddLogMessage(const char* msg);
 
 private:
-    Bridge();
+    // Singleton
+    Bridge() {};
+    virtual ~Bridge();
     Bridge(Bridge& other) {};
     Bridge& operator=(Bridge& other) {};
     static Bridge* instance;
 
-    void HookAllGui();
-    
-    bool inited;
-    FILE* autoCompleteConfigFp;
-    char* autoCompleteConfig;
+    void _HookAllGui();
 
-    HMODULE bridgeModule;
-    HMODULE dbgModule;
+    std::vector<std::string> _commands;
 
-    BRIDGEINIT BridgeInit;
-    DBGINIT DbgInit;
-    DBGCMDEXEC DbgCmdExec;
-    DEBEXIT DbgExit;
-    DBGSENDMESSAGE _dbg_sendmessage;
+    HMODULE _bridgeModule;
+    HMODULE _dbgModule;
+
+    DBGSTATE _dbgState;
+    DWORD _lastLogTime;
+
+    // bridge lib functions
+    BRIDGEINIT _BridgeInit;
+    DBGINIT _DbgInit;
+    DBGDBGCMDEXEC _DbgCmdExec;
+    DEBEXIT _DbgExit;
+
+    // dbg lib functions
+    DBGSENDMESSAGE __dbg_sendmessage;
 };
