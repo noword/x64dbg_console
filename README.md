@@ -7,6 +7,7 @@ But you can use it with some remote script plugin, like [x64dbgpy3](https://gith
 
 ## Installation 
 Put x64dbg_console.exe with x64dbg.exe together.
+
 Put x32dbg_console.exe with x32dbg.exe together.
 
 ## Third part libraies
