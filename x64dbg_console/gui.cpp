@@ -482,6 +482,7 @@ void * _gui_sendmessage(GUIMSG type, void *param1, void *param2)
         break;
 
     default:
+        bridge->Printf("[TODO] Not implemented Gui Message: %d\n",  type);
         break;
     }
     return(result);
@@ -489,6 +490,6 @@ void * _gui_sendmessage(GUIMSG type, void *param1, void *param2)
 
 int _gui_guiinit(int argc, char *argv[])
 {
-    return(0);
+    return Bridge::GetInstance()->MainLoop(argc, argv);
 }
 

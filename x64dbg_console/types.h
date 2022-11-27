@@ -306,17 +306,17 @@ typedef enum
 
 // BRIDGE typedefs
 typedef const wchar_t* (*BRIDGEINIT)();
-typedef const char* (*DBGINIT)();
+typedef const wchar_t* (*BRIDGESTART)();
 typedef bool (*DBGDBGCMDEXEC)(const char* command);
-typedef void (*DEBEXIT)();
+typedef const char(*DBGINIT)();
 
 // DBG typedefs
 typedef duint(*DBGSENDMESSAGE)(DBGMSG type, void* param1, void* param2);
 
 
 #ifdef _DEBUG
-#define LogFunctionName    puts("*** " __FUNCTION__ " ***");
-#define Log(fmt, ...)    printf("[LOG] " fmt, __VA_ARGS__);
+#define Log(fmt, ...)    Printf("[LOG] " fmt, __VA_ARGS__);
+#define LogFunctionName    Log("*** " __FUNCTION__ " ***\n");
 #else
 #define LogFunctionName
 #define Log(fmt, ...)

@@ -3,12 +3,11 @@
 #include "hooker.h"
 #include "gui.h"
 
-
 #define LOAD_LIBRARY(MODULE, NAME)  \
     MODULE = LoadLibraryA(NAME); \
     if (!MODULE) \
     { \
-        puts("Error loading library " NAME); \
+        Printf("[ERROR] failed to load library " NAME); \
         return false; \
     }
 
@@ -16,7 +15,7 @@
     *((FARPROC*)&_ ## NAME) = GetProcAddress(MODULE, #NAME); \
     if (!_ ## NAME) \
     { \
-        puts("Export " #NAME " could not be found!"); \
+        Printf("[ERROR] failed to find export " #NAME ); \
         return false; \
     }
 
@@ -29,23 +28,35 @@ bool Bridge::Init()
     LOAD_LIBRARY(_guiModule, GUI_LIB_NAME);
 
     GET_ADDRESS(_bridgeModule, BridgeInit);
+    GET_ADDRESS(_bridgeModule, BridgeStart);
     GET_ADDRESS(_bridgeModule, DbgInit);
     GET_ADDRESS(_bridgeModule, DbgCmdExec);
-    GET_ADDRESS(_bridgeModule, DbgExit);
     GET_ADDRESS(_dbgModule, _dbg_sendmessage);
 
     SET_HOOKER(_guiModule, _gui_translate_text);
     SET_HOOKER(_guiModule, _gui_sendmessage);
     SET_HOOKER(_guiModule, _gui_guiinit);
+    
+    _AutoCompleteAdd("quit,exit");
 
-    _BridgeInit();
-    DbgSendMessage(DBG_INITIALIZE_LOCKS, nullptr, nullptr);
-    _DbgInit();
+    const wchar_t* errormsg = _BridgeInit();
+    if (errormsg)
+    {
+        Printf(L"[ERROR] %s", errormsg);
+        return false;
+    }
+    
+    errormsg = _BridgeStart();
+    if (errormsg)
+    {
+        Printf(L"[ERROR] %s", errormsg);
+        return false;
+    }
 
     return true;
 }
 
-void Bridge::AutoCompleteAdd(const char* command)
+void Bridge::_AutoCompleteAdd(const char* command)
 {
     size_t pos = 0;
     std::string s(command);
@@ -60,8 +71,6 @@ void Bridge::AutoCompleteAdd(const char* command)
 
 Bridge::~Bridge()
 {
-    _DbgExit();
-    DbgSendMessage(DBG_DEINITIALIZE_LOCKS, nullptr, nullptr);
     FreeLibrary(_bridgeModule);
     FreeLibrary(_dbgModule);
     FreeLibrary(_guiModule);
@@ -116,7 +125,7 @@ void Bridge::GuiSetDebugStateFast(DBGSTATE state)
 void Bridge::GuiAddLogMessage(const char* msg)
 {
     //LogFunctionName;
-    printf(msg);
+    Printf(msg);
     _lastLogTime = GetTickCount();
     return;
 }
@@ -234,7 +243,7 @@ void Bridge::GuiScriptEnableHighlighting(bool enable)
 void Bridge::GuiSymbolLogAdd(const char* message)
 {
     //LogFunctionName;
-    printf("[SYMBOL] %s", (char*)message);
+    Printf("[SYMBOL] %s", (char*)message);
     _lastLogTime = GetTickCount();
     return;
 }
@@ -446,7 +455,7 @@ bool Bridge::GuiGetLineWindow(const char* title, char* text)
 void Bridge::GuiAutoCompleteAddCmd(const char* cmd)
 {
     LogFunctionName;
-    Bridge::GetInstance()->AutoCompleteAdd(cmd);
+    _AutoCompleteAdd(cmd);
     return;
 }
 
@@ -838,4 +847,91 @@ DWORD Bridge::GuiGetMainThreadId()
 {
     LogFunctionName;
     return GetCurrentThreadId();
+}
+
+void Bridge::_WaitOutput()
+{
+    while (GetTickCount() - _lastLogTime < 500 || _dbgState == running)
+    {
+        Sleep(200);
+    }
+}
+
+std::vector <ColorPicker>  Bridge::_colors = {
+    {"Invalid value", CROSSLINE_FGCOLOR_RED},
+    {"Unknown command", CROSSLINE_FGCOLOR_RED},
+    {"[ERROR]", CROSSLINE_FGCOLOR_RED},
+    {"[TODO]", CROSSLINE_FGCOLOR_RED},
+    {"[SYMBOL]", CROSSLINE_FGCOLOR_YELLOW},
+    {"[LOG]", CROSSLINE_FGCOLOR_BLUE},
+    {"[PLUGIN]", CROSSLINE_FGCOLOR_GREEN}
+};
+
+int Bridge::Printf(const char* format, ...)
+{
+    std::lock_guard<std::mutex> lock(_printMutex);
+
+    for (auto c : _colors)
+    {
+        if (c.prefix.compare(0, c.prefix.size(), format, c.prefix.size()) == 0)
+        {
+            crossline_color_set(c.color);
+            break;
+        }
+    }
+    va_list args;
+    va_start(args, format);
+    int result = vprintf(format, args);
+    va_end(args);
+    crossline_color_set(crossline_color_e(CROSSLINE_FGCOLOR_DEFAULT | CROSSLINE_BGCOLOR_BLACK));
+    return result;
+}
+
+int Bridge::Printf(const wchar_t* format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    int result = vwprintf(format, args);
+    va_end(args);
+    return result;
+}
+
+void completion_hook(char const* buf, crossline_completions_t* pCompletion)
+{
+    size_t size = strlen(buf);
+
+    for (auto s : Bridge::GetInstance()->GetCommands())
+    {
+        if (_strnicmp(buf, s.c_str(), size) == 0)
+        {
+            crossline_completion_add(pCompletion, s.c_str(), NULL);
+        }
+    }
+}
+
+int Bridge::MainLoop(int argc, char* argv[])
+{
+    _DbgInit();
+    _WaitOutput();
+
+    crossline_history_load(HISTORY_FILE);
+    crossline_completion_register(completion_hook);
+    crossline_prompt_color_set(crossline_color_e(CROSSLINE_FGCOLOR_BRIGHT | CROSSLINE_FGCOLOR_GREEN));
+
+    char cmd[128];
+    while (crossline_readline(PROMPT, cmd, 128))
+    {
+        if (_strcmpi(cmd, "quit") == 0 || _strcmpi(cmd, "exit") == 0)
+        {
+            break;
+        }
+        _DbgExecCmd(cmd);
+        Sleep(200);
+       
+        _WaitOutput();
+    }
+
+    crossline_history_save(HISTORY_FILE);
+
+    return 0;
 }
