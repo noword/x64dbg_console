@@ -2,228 +2,174 @@
 #include <Windows.h>
 #include <vector>
 #include <string>
+#include "types.h"
 
 #ifdef _WIN64
-typedef unsigned long long duint;
-typedef signed long long dsint;
+#define DBG_LIB_NAME       "x64dbg.dll"
+#define BRIDGE_LIB_NAME    "x64bridge.dll"
+#define GUI_LIB_NAME       "x64gui.dll"
 #else
-typedef unsigned long duint;
-typedef signed long dsint;
-#endif //_WIN64
-
-typedef enum
-{
-    initialized,
-    paused,
-    running,
-    stopped
-} DBGSTATE;
-
-typedef enum
-{
-    GUI_DISASSEMBLY,
-    GUI_DUMP,
-    GUI_STACK,
-    GUI_GRAPH,
-    GUI_MEMMAP,
-    GUI_SYMMOD,
-} GUISELECTIONTYPE;
-
-typedef struct
-{
-    duint start;
-    duint end;
-} SELECTIONDATA;
-
-#define MAX_MODULE_SIZE 256
-typedef struct
-{
-    duint base;
-    char name[MAX_MODULE_SIZE];
-} SYMBOLMODULEINFO;
-
-typedef struct
-{
-    const void* data;
-    duint size;
-} ICONDATA;
-
-typedef void (*GUICALLBACK)();
-typedef void (*GUICALLBACKEX)(void*);
-typedef bool (*GUISCRIPTEXECUTE)(const char* text);
-typedef void (*GUISCRIPTCOMPLETER)(const char* text, char** entries, int* entryCount);
-typedef bool (*TYPETOSTRING)(const struct _TYPEDESCRIPTOR* type, char* dest, size_t* destCount); //don't change destCount for final failure
-
-typedef struct
-{
-    char name[64];
-    int id;
-    GUISCRIPTEXECUTE execute;
-    GUISCRIPTCOMPLETER completeCommand;
-} SCRIPTTYPEINFO;
-
-typedef struct
-{
-    int count; //Number of element in the list.
-    size_t size; //Size of list in bytes (used for type checking).
-    void* data; //Pointer to the list contents. Must be deleted by the caller using BridgeFree (or BridgeList::Free).
-} ListInfo;
-
-typedef struct
-{
-    duint entryPoint; //graph entry point
-    void* userdata; //user data
-    ListInfo nodes; //graph nodes (BridgeCFNodeList)
-} BridgeCFGraphList;
-
-#define MAX_STRING_SIZE 512
-
-typedef struct
-{
-    void* titleHwnd;
-    void* classHwnd;
-    char title[MAX_STRING_SIZE];
-    char className[MAX_STRING_SIZE];
-} ACTIVEVIEW;
-
-typedef struct _TYPEDESCRIPTOR
-{
-    bool expanded; //is the type node expanded?
-    bool reverse; //big endian?
-    const char* name; //type name (int b)
-    duint addr; //virtual address
-    duint offset; //offset to addr for the actual location
-    int id; //type id
-    int size; //sizeof(type)
-    TYPETOSTRING callback; //convert to string
-    void* userdata; //user data
-} TYPEDESCRIPTOR;
-
-typedef enum
-{
-    DBG_SCRIPT_LOAD,                // param1=const char* filename,      param2=unused
-    DBG_SCRIPT_UNLOAD,              // param1=unused,                    param2=unused
-    DBG_SCRIPT_RUN,                 // param1=int destline,              param2=unused
-    DBG_SCRIPT_STEP,                // param1=unused,                    param2=unused
-    DBG_SCRIPT_BPTOGGLE,            // param1=int line,                  param2=unused
-    DBG_SCRIPT_BPGET,               // param1=int line,                  param2=unused
-    DBG_SCRIPT_CMDEXEC,             // param1=const char* command,       param2=unused
-    DBG_SCRIPT_ABORT,               // param1=unused,                    param2=unused
-    DBG_SCRIPT_GETLINETYPE,         // param1=int line,                  param2=unused
-    DBG_SCRIPT_SETIP,               // param1=int line,                  param2=unused
-    DBG_SCRIPT_GETBRANCHINFO,       // param1=int line,                  param2=SCRIPTBRANCH* info
-    DBG_SYMBOL_ENUM,                // param1=SYMBOLCBINFO* cbInfo,      param2=unused
-    DBG_ASSEMBLE_AT,                // param1=duint addr,                param2=const char* instruction
-    DBG_MODBASE_FROM_NAME,          // param1=const char* modname,       param2=unused
-    DBG_DISASM_AT,                  // param1=duint addr,                 param2=DISASM_INSTR* instr
-    DBG_STACK_COMMENT_GET,          // param1=duint addr,                param2=STACK_COMMENT* comment
-    DBG_GET_THREAD_LIST,            // param1=THREADALLINFO* list,       param2=unused
-    DBG_SETTINGS_UPDATED,           // param1=unused,                    param2=unused
-    DBG_DISASM_FAST_AT,             // param1=duint addr,                param2=BASIC_INSTRUCTION_INFO* basicinfo
-    DBG_MENU_ENTRY_CLICKED,         // param1=int hEntry,                param2=unused
-    DBG_FUNCTION_GET,               // param1=FUNCTION_LOOP_INFO* info,  param2=unused
-    DBG_FUNCTION_OVERLAPS,          // param1=FUNCTION_LOOP_INFO* info,  param2=unused
-    DBG_FUNCTION_ADD,               // param1=FUNCTION_LOOP_INFO* info,  param2=unused
-    DBG_FUNCTION_DEL,               // param1=FUNCTION_LOOP_INFO* info,  param2=unused
-    DBG_LOOP_GET,                   // param1=FUNCTION_LOOP_INFO* info,  param2=unused
-    DBG_LOOP_OVERLAPS,              // param1=FUNCTION_LOOP_INFO* info,  param2=unused
-    DBG_LOOP_ADD,                   // param1=FUNCTION_LOOP_INFO* info,  param2=unused
-    DBG_LOOP_DEL,                   // param1=FUNCTION_LOOP_INFO* info,  param2=unused
-    DBG_IS_RUN_LOCKED,              // param1=unused,                    param2=unused
-    DBG_IS_BP_DISABLED,             // param1=duint addr,                param2=unused
-    DBG_SET_AUTO_COMMENT_AT,        // param1=duint addr,                param2=const char* text
-    DBG_DELETE_AUTO_COMMENT_RANGE,  // param1=duint start,               param2=duint end
-    DBG_SET_AUTO_LABEL_AT,          // param1=duint addr,                param2=const char* text
-    DBG_DELETE_AUTO_LABEL_RANGE,    // param1=duint start,               param2=duint end
-    DBG_SET_AUTO_BOOKMARK_AT,       // param1=duint addr,                param2=const char* text
-    DBG_DELETE_AUTO_BOOKMARK_RANGE, // param1=duint start,               param2=duint end
-    DBG_SET_AUTO_FUNCTION_AT,       // param1=duint addr,                param2=const char* text
-    DBG_DELETE_AUTO_FUNCTION_RANGE, // param1=duint start,               param2=duint end
-    DBG_GET_STRING_AT,              // param1=duint addr,                param2=unused
-    DBG_GET_FUNCTIONS,              // param1=unused,                    param2=unused
-    DBG_WIN_EVENT,                  // param1=MSG* message,              param2=long* result
-    DBG_WIN_EVENT_GLOBAL,           // param1=MSG* message,              param2=unused
-    DBG_INITIALIZE_LOCKS,           // param1=unused,                    param2=unused
-    DBG_DEINITIALIZE_LOCKS,         // param1=unused,                    param2=unused
-    DBG_GET_TIME_WASTED_COUNTER,    // param1=unused,                    param2=unused
-    DBG_SYMBOL_ENUM_FROMCACHE,      // param1=SYMBOLCBINFO* cbInfo,      param2=unused
-    DBG_DELETE_COMMENT_RANGE,       // param1=duint start,               param2=duint end
-    DBG_DELETE_LABEL_RANGE,         // param1=duint start,               param2=duint end
-    DBG_DELETE_BOOKMARK_RANGE,      // param1=duint start,               param2=duint end
-    DBG_GET_XREF_COUNT_AT,          // param1=duint addr,                param2=unused
-    DBG_GET_XREF_TYPE_AT,           // param1=duint addr,                param2=unused
-    DBG_XREF_ADD,                   // param1=duint addr,                param2=duint from
-    DBG_XREF_DEL_ALL,               // param1=duint addr,                param2=unused
-    DBG_XREF_GET,                   // param1=duint addr,                param2=XREF_INFO* info
-    DBG_GET_ENCODE_TYPE_BUFFER,     // param1=duint addr,                param2=unused
-    DBG_ENCODE_TYPE_GET,            // param1=duint addr,                param2=duint size
-    DBG_DELETE_ENCODE_TYPE_RANGE,   // param1=duint start,               param2=duint end
-    DBG_ENCODE_SIZE_GET,            // param1=duint addr,                param2=duint codesize
-    DBG_DELETE_ENCODE_TYPE_SEG,     // param1=duint addr,                param2=unused
-    DBG_RELEASE_ENCODE_TYPE_BUFFER, // param1=void* buffer,              param2=unused
-    DBG_ARGUMENT_GET,               // param1=FUNCTION* info,            param2=unused
-    DBG_ARGUMENT_OVERLAPS,          // param1=FUNCTION* info,            param2=unused
-    DBG_ARGUMENT_ADD,               // param1=FUNCTION* info,            param2=unused
-    DBG_ARGUMENT_DEL,               // param1=FUNCTION* info,            param2=unused
-    DBG_GET_WATCH_LIST,             // param1=ListOf(WATCHINFO),         param2=unused
-    DBG_SELCHANGED,                 // param1=hWindow,                   param2=VA
-    DBG_GET_PROCESS_HANDLE,         // param1=unused,                    param2=unused
-    DBG_GET_THREAD_HANDLE,          // param1=unused,                    param2=unused
-    DBG_GET_PROCESS_ID,             // param1=unused,                    param2=unused
-    DBG_GET_THREAD_ID,              // param1=unused,                    param2=unused
-    DBG_GET_PEB_ADDRESS,            // param1=DWORD ProcessId,           param2=unused
-    DBG_GET_TEB_ADDRESS,            // param1=DWORD ThreadId,            param2=unused
-    DBG_ANALYZE_FUNCTION,           // param1=BridgeCFGraphList* graph,  param2=duint entry
-    DBG_MENU_PREPARE,               // param1=int hMenu,                 param2=unused
-    DBG_GET_SYMBOL_INFO,            // param1=void* symbol,              param2=SYMBOLINFO* info
-    DBG_GET_DEBUG_ENGINE,           // param1=unused,                    param2-unused
-} DBGMSG;
-
-#ifdef _WIN64
-#define DBG_LIB_NAME "x64dbg.dll"
-#define BRIDGE_LIB_NAME "x64bridge.dll"
-#else
-#define DBG_LIB_NAME "x32dbg.dll"
-#define BRIDGE_LIB_NAME "x32bridge.dll"
+#define DBG_LIB_NAME       "x32dbg.dll"
+#define BRIDGE_LIB_NAME    "x32bridge.dll"
+#define GUI_LIB_NAME       "x32gui.dll"
 #endif // ifdef _WIN64
-
-typedef const wchar_t* (*BRIDGEINIT)();
-typedef const char* (*DBGINIT)();
-typedef bool (*DBGDBGCMDEXEC)(const char* command);
-typedef void (*DEBEXIT)();
-typedef duint (*DBGSENDMESSAGE)(DBGMSG type, void* param1, void* param2);
 
 class Bridge
 {
 public:
-    static Bridge* GetInstance();
+    static Bridge * GetInstance();
     void FreeInstance();
 
     bool Init();
-    bool DbgExecCmd(const char* command) { return _DbgCmdExec(command); };
-    DBGSTATE GetDbgState() { return _dbgState; };
-    DWORD GetLastLogTime() { return _lastLogTime; };
-    
-    // for hook functions
-    const std::vector<std::string>& GetCommands() { return _commands; };
-    void SetDbgState(DBGSTATE state) { _dbgState = state; };
-    void AutoCompleteAdd(const char* command);
-    void AddLogMessage(const char* msg);
 
+    bool DbgExecCmd(const char *command)    { return(_DbgCmdExec(command)); };
+    DBGSTATE GetDbgState()    { return(_dbgState); };
+    DWORD GetLastLogTime()    { return(_lastLogTime); };
+
+    // for hook functions
+    const std::vector <std::string>& GetCommands()    { return(_commands); };
+    void AutoCompleteAdd(const char *command);
+
+    duint DbgSendMessage(DBGMSG type, void *param1, void *param2)    { return(__dbg_sendmessage(type, param1, param2)); };
+
+
+    const char* GuiTranslateText(const char* Source);
+    void GuiDisasmAt(duint addr, duint cip);
+    void GuiSetDebugState(DBGSTATE state);
+    void GuiSetDebugStateFast(DBGSTATE state);
+    void GuiAddLogMessage(const char* msg);
+    void GuiAddLogMessageHtml(const char* msg);
+    void GuiLogClear();
+    void GuiUpdateAllViews();
+    void GuiUpdateRegisterView();
+    void GuiUpdateDisassemblyView();
+    void GuiUpdateBreakpointsView();
+    void GuiUpdateWindowTitle(const char* filename);
+    HWND GuiGetWindowHandle();
+    void GuiDumpAt(duint va);
+    void GuiScriptAdd(int count, const char** lines);
+    void GuiScriptClear();
+    void GuiScriptSetIp(int line);
+    void GuiScriptError(int line, const char* message);
+    void GuiScriptSetTitle(const char* title);
+    void GuiScriptSetInfoLine(int line, const char* info);
+    void GuiScriptMessage(const char* message);
+    int GuiScriptMsgyn(const char* message);
+    void GuiScriptEnableHighlighting(bool enable);
+    void GuiSymbolLogAdd(const char* message);
+    void GuiSymbolLogClear();
+    void GuiSymbolSetProgress(int percent);
+    void GuiSymbolUpdateModuleList(int count, SYMBOLMODULEINFO* modules);
+    void GuiSymbolRefreshCurrent();
+    void GuiReferenceAddColumn(int width, const char* title);
+    void GuiReferenceSetRowCount(int count);
+    int GuiReferenceGetRowCount();
+    int GuiReferenceSearchGetRowCount();
+    void GuiReferenceDeleteAllColumns();
+    void GuiReferenceInitialize(const char* name);
+    void GuiReferenceSetCellContent(int row, int col, const char* str);
+    char* GuiReferenceGetCellContent(int row, int col);
+    char* GuiReferenceSearchGetCellContent(int row, int col);
+    void GuiReferenceReloadData();
+    void GuiReferenceSetSingleSelection(int index, bool scroll);
+    void GuiReferenceSetProgress(int progress);
+    void GuiReferenceSetCurrentTaskProgress(int progress, const char* taskTitle);
+    void GuiReferenceSetSearchStartCol(int col);
+    void GuiStackDumpAt(duint addr, duint csp);
+    void GuiUpdateDumpView();
+    void GuiUpdateWatchView();
+    void GuiUpdateThreadView();
+    void GuiUpdateMemoryView();
+    void GuiAddRecentFile(const char* file);
+    void GuiSetLastException(unsigned int exception);
+    bool GuiGetDisassembly(duint addr, char* text);
+    int GuiMenuAdd(int hMenu, const char* title);
+    int GuiMenuAddEntry(int hMenu, const char* title);
+    void GuiMenuAddSeparator(int hMenu);
+    void GuiMenuClear(int hMenu);
+    void GuiMenuRemove(int hEntryMenu);
+    bool GuiSelectionGet(GUISELECTIONTYPE hWindow, SELECTIONDATA* selection);
+    bool GuiSelectionSet(GUISELECTIONTYPE hWindow, const SELECTIONDATA* selection);
+    bool GuiGetLineWindow(const char* title, char* text);
+    void GuiAutoCompleteAddCmd(const char* cmd);
+    void GuiAutoCompleteDelCmd(const char* cmd);
+    void GuiAutoCompleteClearAll();
+    void GuiAddStatusBarMessage(const char* msg);
+    void GuiUpdateSideBar();
+    void GuiRepaintTableView();
+    void GuiUpdatePatches();
+    void GuiUpdateCallStack();
+    void GuiUpdateSEHChain();
+    void GuiLoadSourceFileEx(const char* path, duint addr);
+    void GuiMenuSetIcon(int hMenu, const ICONDATA* icon);
+    void GuiMenuSetEntryIcon(int hEntry, const ICONDATA* icon);
+    void GuiMenuSetEntryChecked(int hEntry, bool checked);
+    void GuiMenuSetVisible(int hMenu, bool visible);
+    void GuiMenuSetEntryVisible(int hEntry, bool visible);
+    void GuiMenuSetName(int hMenu, const char* name);
+    void GuiMenuSetEntryName(int hEntry, const char* name);
+    void GuiMenuSetEntryHotkey(int hEntry, const char* hack);
+    void GuiShowCpu();
+    void GuiAddQWidgetTab(void* qWidget);
+    void GuiShowQWidgetTab(void* qWidget);
+    void GuiCloseQWidgetTab(void* qWidget);
+    void GuiExecuteOnGuiThread(GUICALLBACK cbGuiThread);
+    void GuiUpdateTimeWastedCounter();
+    void GuiSetGlobalNotes(const char* text);
+    void GuiGetGlobalNotes(char** text);
+    void GuiSetDebuggeeNotes(const char* text);
+    void GuiGetDebuggeeNotes(char** text);
+    void GuiDumpAtN(duint va, int index);
+    void GuiDisplayWarning(const char* title, const char* text);
+    void GuiRegisterScriptLanguage(SCRIPTTYPEINFO* info);
+    void GuiUnregisterScriptLanguage(int id);
+    void GuiUpdateArgumentWidget();
+    void GuiFocusView(int hWindow);
+    bool GuiIsUpdateDisabled();
+    void GuiUpdateEnable(bool updateNow);
+    void GuiUpdateDisable();
+    bool GuiLoadGraph(BridgeCFGraphList* graph, duint addr);
+    duint GuiGraphAt(duint addr);
+    void GuiUpdateGraphView();
+    void GuiDisableLog();
+    void GuiEnableLog();
+    void GuiAddFavouriteTool(const char* name, const char* description);
+    void GuiAddFavouriteCommand(const char* name, const char* shortcut);
+    void GuiSetFavouriteToolShortcut(const char* name, const char* shortcut);
+    void GuiFoldDisassembly(duint startAddress, duint length);
+    void GuiSelectInMemoryMap(duint addr);
+    void GuiGetActiveView(ACTIVEVIEW* activeView);
+    void GuiAddInfoLine(const char* infoLine);
+    void GuiProcessEvents();
+    void* GuiTypeAddNode(void* parent, const TYPEDESCRIPTOR* type);
+    bool GuiTypeClear();
+    void GuiUpdateTypeWidget();
+    void GuiCloseApplication();
+    void GuiFlushLog();
+    void GuiReferenceAddCommand(const char* title, const char* command);
+    void GuiUpdateTraceBrowser();
+    void GuiOpenTraceFile(const char* fileName);
+    void GuiInvalidateSymbolSource(duint base);
+    void GuiExecuteOnGuiThreadEx(GUICALLBACKEX cbGuiThread, void* userdata);
+    void GuiGetCurrentGraph(BridgeCFGraphList* graphList);
+    void GuiShowReferences();
+    void GuiSelectInSymbolsTab(duint addr);
+    void GuiGotoTrace(duint index);
+    void GuiShowTrace();
+    DWORD GuiGetMainThreadId();
 private:
     // Singleton
     Bridge() {};
     virtual ~Bridge();
     Bridge(Bridge& other) {};
     Bridge& operator=(Bridge& other) {};
-    static Bridge* instance;
+    static Bridge *instance;
 
-    void _HookAllGui();
-
-    std::vector<std::string> _commands;
+    std::vector <std::string> _commands;
 
     HMODULE _bridgeModule;
     HMODULE _dbgModule;
+    HMODULE _guiModule;
 
     DBGSTATE _dbgState;
     DWORD _lastLogTime;

@@ -142,11 +142,16 @@
   <ItemGroup>
     <ClCompile Include="bridge.cpp" />
     <ClCompile Include="crossline.c" />
+    <ClCompile Include="gui.cpp" />
+    <ClCompile Include="hooker.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="bridge.h" />
     <ClInclude Include="crossline.h" />
+    <ClInclude Include="gui.h" />
+    <ClInclude Include="hooker.h" />
+    <ClInclude Include="types.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
