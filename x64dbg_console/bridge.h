@@ -176,7 +176,8 @@ private:
     bool _DbgExecCmd(const char *command) { return(_DbgCmdExec(command)); };
     DBGSTATE _GetDbgState() { return(_dbgState); };
     void _AutoCompleteAdd(const char *command);
-    duint _DbgSendMessage(DBGMSG type, void *param1, void *param2) { return(__dbg_sendmessage(type, param1, param2)); };
+    duint _DbgSendMessage(DBGMSG type, void *param1, void *param2) { return __dbg_sendmessage(type, param1, param2); };
+    bool _DbgMemRead(duint addr, void* dest, duint size, duint* read) { return __dbg_memread(addr, dest, size, read); };
 
     std::vector <std::string> _commands;
     static std::vector <ColorPicker> _colors;
@@ -195,6 +196,7 @@ private:
 
     // dbg lib functions
     DBGSENDMESSAGE __dbg_sendmessage;
+    DBGMEMREAD __dbg_memread;
 
     DBGSTATE _dbgState;
     DWORD _lastLogTime;

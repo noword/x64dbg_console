@@ -3,20 +3,20 @@
 #include "hooker.h"
 #include "gui.h"
 
-#define LOAD_LIBRARY(MODULE, NAME)  \
-    MODULE = LoadLibraryA(NAME); \
-    if (!MODULE) \
-    { \
+#define LOAD_LIBRARY(MODULE, NAME)                      \
+    MODULE = LoadLibraryA(NAME);                        \
+    if (!MODULE)                                        \
+    {                                                   \
         Printf("[ERROR] failed to load library " NAME); \
-        return false; \
+        return(false);                                  \
     }
 
-#define GET_ADDRESS(MODULE, NAME) \
-    *((FARPROC*)&_ ## NAME) = GetProcAddress(MODULE, #NAME); \
-    if (!_ ## NAME) \
-    { \
-        Printf("[ERROR] failed to find export " #NAME ); \
-        return false; \
+#define GET_ADDRESS(MODULE, NAME)                             \
+    *((FARPROC *)&_ ## NAME) = GetProcAddress(MODULE, #NAME); \
+    if (!_ ## NAME)                                           \
+    {                                                         \
+        Printf("[ERROR] failed to find export " #NAME);       \
+        return(false);                                        \
     }
 
 bool Bridge::Init()
@@ -32,33 +32,34 @@ bool Bridge::Init()
     GET_ADDRESS(_bridgeModule, DbgInit);
     GET_ADDRESS(_bridgeModule, DbgCmdExec);
     GET_ADDRESS(_dbgModule, _dbg_sendmessage);
+    GET_ADDRESS(_dbgModule, _dbg_memread);
 
     SET_HOOKER(_guiModule, _gui_translate_text);
     SET_HOOKER(_guiModule, _gui_sendmessage);
     SET_HOOKER(_guiModule, _gui_guiinit);
-    
+
     _AutoCompleteAdd("quit,exit");
 
-    const wchar_t* errormsg = _BridgeInit();
+    const wchar_t *errormsg = _BridgeInit();
     if (errormsg)
     {
         Printf(L"[ERROR] %s", errormsg);
-        return false;
+        return(false);
     }
-    
+
     errormsg = _BridgeStart();
     if (errormsg)
     {
         Printf(L"[ERROR] %s", errormsg);
-        return false;
+        return(false);
     }
 
-    return true;
+    return(true);
 }
 
-void Bridge::_AutoCompleteAdd(const char* command)
+void Bridge::_AutoCompleteAdd(const char *command)
 {
-    size_t pos = 0;
+    size_t      pos = 0;
     std::string s(command);
 
     while ((pos = s.find(",")) != std::string::npos)
@@ -76,14 +77,14 @@ Bridge::~Bridge()
     FreeLibrary(_guiModule);
 }
 
-Bridge* Bridge::instance = nullptr;
-Bridge* Bridge::GetInstance()
+Bridge *Bridge::instance = nullptr;
+Bridge * Bridge::GetInstance()
 {
     if (instance == nullptr)
     {
         instance = new Bridge();
     }
-    return instance;
+    return(instance);
 }
 
 void Bridge::FreeInstance()
@@ -95,7 +96,7 @@ void Bridge::FreeInstance()
     }
 }
 
-const char* Bridge::GuiTranslateText(const char* Source)
+const char * Bridge::GuiTranslateText(const char *Source)
 {
     //LogFunctionName;
     return(Source);
@@ -104,7 +105,39 @@ const char* Bridge::GuiTranslateText(const char* Source)
 void Bridge::GuiDisasmAt(duint addr, duint cip)
 {
     LogFunctionName;
-    Log("addr: %0llx, cip: %llx\n", addr, cip);
+    Log("addr: %0llx, cip: %llx", addr, cip);
+
+#define INSTR_BUF_SIZE 16
+
+    if (_dbgState != running)
+    {
+        std::lock_guard <std::mutex> lock(_printMutex);
+        DISASM_INSTR instr;
+        unsigned char buf[INSTR_BUF_SIZE];
+        for (int i = 0; i < 10; i++)
+        {
+            _DbgSendMessage(DBG_DISASM_AT, (void *)addr, &instr);
+            crossline_color_set(CROSSLINE_FGCOLOR_BLUE);
+            printf("%llx ", addr);
+            crossline_color_set(CROSSLINE_FGCOLOR_CYAN);
+            int size = min(instr.instr_size, INSTR_BUF_SIZE);
+            _DbgMemRead(addr, buf, size, 0);
+            for (int j = 0; j < 16; j++)
+            {
+                if (j <= size)
+                {
+                    printf("%02x", buf[j]);
+                }
+                else
+                {
+                    printf("  ");
+                }
+            }
+            crossline_color_set(CROSSLINE_FGCOLOR_DEFAULT);
+            printf("\t%s\n", instr.instruction);
+            addr += instr.instr_size;
+        }
+    }
     return;
 }
 
@@ -122,7 +155,7 @@ void Bridge::GuiSetDebugStateFast(DBGSTATE state)
     return;
 }
 
-void Bridge::GuiAddLogMessage(const char* msg)
+void Bridge::GuiAddLogMessage(const char *msg)
 {
     //LogFunctionName;
     Printf(msg);
@@ -130,7 +163,7 @@ void Bridge::GuiAddLogMessage(const char* msg)
     return;
 }
 
-void Bridge::GuiAddLogMessageHtml(const char* msg)
+void Bridge::GuiAddLogMessageHtml(const char *msg)
 {
     LogFunctionName;
     return;
@@ -166,7 +199,7 @@ void Bridge::GuiUpdateBreakpointsView()
     return;
 }
 
-void Bridge::GuiUpdateWindowTitle(const char* filename)
+void Bridge::GuiUpdateWindowTitle(const char *filename)
 {
     LogFunctionName;
     Log("title: %s", filename);
@@ -186,7 +219,7 @@ void Bridge::GuiDumpAt(duint va)
     return;
 }
 
-void Bridge::GuiScriptAdd(int count, const char** lines)
+void Bridge::GuiScriptAdd(int count, const char **lines)
 {
     LogFunctionName;
     return;
@@ -204,31 +237,31 @@ void Bridge::GuiScriptSetIp(int line)
     return;
 }
 
-void Bridge::GuiScriptError(int line, const char* message)
+void Bridge::GuiScriptError(int line, const char *message)
 {
     LogFunctionName;
     return;
 }
 
-void Bridge::GuiScriptSetTitle(const char* title)
+void Bridge::GuiScriptSetTitle(const char *title)
 {
     LogFunctionName;
     return;
 }
 
-void Bridge::GuiScriptSetInfoLine(int line, const char* info)
+void Bridge::GuiScriptSetInfoLine(int line, const char *info)
 {
     LogFunctionName;
     return;
 }
 
-void Bridge::GuiScriptMessage(const char* message)
+void Bridge::GuiScriptMessage(const char *message)
 {
     LogFunctionName;
     return;
 }
 
-int Bridge::GuiScriptMsgyn(const char* message)
+int Bridge::GuiScriptMsgyn(const char *message)
 {
     LogFunctionName;
     return(0);
@@ -240,10 +273,10 @@ void Bridge::GuiScriptEnableHighlighting(bool enable)
     return;
 }
 
-void Bridge::GuiSymbolLogAdd(const char* message)
+void Bridge::GuiSymbolLogAdd(const char *message)
 {
     //LogFunctionName;
-    Printf("[SYMBOL] %s", (char*)message);
+    Printf("[SYMBOL] %s", (char *)message);
     _lastLogTime = GetTickCount();
     return;
 }
@@ -260,7 +293,7 @@ void Bridge::GuiSymbolSetProgress(int percent)
     return;
 }
 
-void Bridge::GuiSymbolUpdateModuleList(int count, SYMBOLMODULEINFO* modules)
+void Bridge::GuiSymbolUpdateModuleList(int count, SYMBOLMODULEINFO *modules)
 {
     LogFunctionName;
     return;
@@ -272,7 +305,7 @@ void Bridge::GuiSymbolRefreshCurrent()
     return;
 }
 
-void Bridge::GuiReferenceAddColumn(int width, const char* title)
+void Bridge::GuiReferenceAddColumn(int width, const char *title)
 {
     LogFunctionName;
     return;
@@ -302,25 +335,25 @@ void Bridge::GuiReferenceDeleteAllColumns()
     return;
 }
 
-void Bridge::GuiReferenceInitialize(const char* name)
+void Bridge::GuiReferenceInitialize(const char *name)
 {
     LogFunctionName;
     return;
 }
 
-void Bridge::GuiReferenceSetCellContent(int row, int col, const char* str)
+void Bridge::GuiReferenceSetCellContent(int row, int col, const char *str)
 {
     LogFunctionName;
     return;
 }
 
-char* Bridge::GuiReferenceGetCellContent(int row, int col)
+char * Bridge::GuiReferenceGetCellContent(int row, int col)
 {
     LogFunctionName;
     return(NULL);
 }
 
-char* Bridge::GuiReferenceSearchGetCellContent(int row, int col)
+char * Bridge::GuiReferenceSearchGetCellContent(int row, int col)
 {
     LogFunctionName;
     return(NULL);
@@ -344,7 +377,7 @@ void Bridge::GuiReferenceSetProgress(int progress)
     return;
 }
 
-void Bridge::GuiReferenceSetCurrentTaskProgress(int progress, const char* taskTitle)
+void Bridge::GuiReferenceSetCurrentTaskProgress(int progress, const char *taskTitle)
 {
     LogFunctionName;
     return;
@@ -386,7 +419,7 @@ void Bridge::GuiUpdateMemoryView()
     return;
 }
 
-void Bridge::GuiAddRecentFile(const char* file)
+void Bridge::GuiAddRecentFile(const char *file)
 {
     LogFunctionName;
     return;
@@ -398,19 +431,19 @@ void Bridge::GuiSetLastException(unsigned int exception)
     return;
 }
 
-bool Bridge::GuiGetDisassembly(duint addr, char* text)
+bool Bridge::GuiGetDisassembly(duint addr, char *text)
 {
     LogFunctionName;
     return(true);
 }
 
-int Bridge::GuiMenuAdd(int hMenu, const char* title)
+int Bridge::GuiMenuAdd(int hMenu, const char *title)
 {
     LogFunctionName;
     return(hMenu);
 }
 
-int Bridge::GuiMenuAddEntry(int hMenu, const char* title)
+int Bridge::GuiMenuAddEntry(int hMenu, const char *title)
 {
     LogFunctionName;
     return(hMenu);
@@ -434,32 +467,32 @@ void Bridge::GuiMenuRemove(int hEntryMenu)
     return;
 }
 
-bool Bridge::GuiSelectionGet(GUISELECTIONTYPE hWindow, SELECTIONDATA* selection)
+bool Bridge::GuiSelectionGet(GUISELECTIONTYPE hWindow, SELECTIONDATA *selection)
 {
     LogFunctionName;
     return(true);
 }
 
-bool Bridge::GuiSelectionSet(GUISELECTIONTYPE hWindow, const SELECTIONDATA* selection)
+bool Bridge::GuiSelectionSet(GUISELECTIONTYPE hWindow, const SELECTIONDATA *selection)
 {
     LogFunctionName;
     return(true);
 }
 
-bool Bridge::GuiGetLineWindow(const char* title, char* text)
+bool Bridge::GuiGetLineWindow(const char *title, char *text)
 {
     LogFunctionName;
     return(true);
 }
 
-void Bridge::GuiAutoCompleteAddCmd(const char* cmd)
+void Bridge::GuiAutoCompleteAddCmd(const char *cmd)
 {
     LogFunctionName;
     _AutoCompleteAdd(cmd);
     return;
 }
 
-void Bridge::GuiAutoCompleteDelCmd(const char* cmd)
+void Bridge::GuiAutoCompleteDelCmd(const char *cmd)
 {
     LogFunctionName;
     return;
@@ -471,7 +504,7 @@ void Bridge::GuiAutoCompleteClearAll()
     return;
 }
 
-void Bridge::GuiAddStatusBarMessage(const char* msg)
+void Bridge::GuiAddStatusBarMessage(const char *msg)
 {
     LogFunctionName;
     return;
@@ -507,19 +540,19 @@ void Bridge::GuiUpdateSEHChain()
     return;
 }
 
-void Bridge::GuiLoadSourceFileEx(const char* path, duint addr)
+void Bridge::GuiLoadSourceFileEx(const char *path, duint addr)
 {
     LogFunctionName;
     return;
 }
 
-void Bridge::GuiMenuSetIcon(int hMenu, const ICONDATA* icon)
+void Bridge::GuiMenuSetIcon(int hMenu, const ICONDATA *icon)
 {
     LogFunctionName;
     return;
 }
 
-void Bridge::GuiMenuSetEntryIcon(int hEntry, const ICONDATA* icon)
+void Bridge::GuiMenuSetEntryIcon(int hEntry, const ICONDATA *icon)
 {
     LogFunctionName;
     return;
@@ -543,19 +576,19 @@ void Bridge::GuiMenuSetEntryVisible(int hEntry, bool visible)
     return;
 }
 
-void Bridge::GuiMenuSetName(int hMenu, const char* name)
+void Bridge::GuiMenuSetName(int hMenu, const char *name)
 {
     LogFunctionName;
     return;
 }
 
-void Bridge::GuiMenuSetEntryName(int hEntry, const char* name)
+void Bridge::GuiMenuSetEntryName(int hEntry, const char *name)
 {
     LogFunctionName;
     return;
 }
 
-void Bridge::GuiMenuSetEntryHotkey(int hEntry, const char* hack)
+void Bridge::GuiMenuSetEntryHotkey(int hEntry, const char *hack)
 {
     LogFunctionName;
     return;
@@ -567,19 +600,19 @@ void Bridge::GuiShowCpu()
     return;
 }
 
-void Bridge::GuiAddQWidgetTab(void* qWidget)
+void Bridge::GuiAddQWidgetTab(void *qWidget)
 {
     LogFunctionName;
     return;
 }
 
-void Bridge::GuiShowQWidgetTab(void* qWidget)
+void Bridge::GuiShowQWidgetTab(void *qWidget)
 {
     LogFunctionName;
     return;
 }
 
-void Bridge::GuiCloseQWidgetTab(void* qWidget)
+void Bridge::GuiCloseQWidgetTab(void *qWidget)
 {
     LogFunctionName;
     return;
@@ -597,25 +630,25 @@ void Bridge::GuiUpdateTimeWastedCounter()
     return;
 }
 
-void Bridge::GuiSetGlobalNotes(const char* text)
+void Bridge::GuiSetGlobalNotes(const char *text)
 {
     LogFunctionName;
     return;
 }
 
-void Bridge::GuiGetGlobalNotes(char** text)
+void Bridge::GuiGetGlobalNotes(char **text)
 {
     LogFunctionName;
     return;
 }
 
-void Bridge::GuiSetDebuggeeNotes(const char* text)
+void Bridge::GuiSetDebuggeeNotes(const char *text)
 {
     LogFunctionName;
     return;
 }
 
-void Bridge::GuiGetDebuggeeNotes(char** text)
+void Bridge::GuiGetDebuggeeNotes(char **text)
 {
     LogFunctionName;
     return;
@@ -627,13 +660,13 @@ void Bridge::GuiDumpAtN(duint va, int index)
     return;
 }
 
-void Bridge::GuiDisplayWarning(const char* title, const char* text)
+void Bridge::GuiDisplayWarning(const char *title, const char *text)
 {
     LogFunctionName;
     return;
 }
 
-void Bridge::GuiRegisterScriptLanguage(SCRIPTTYPEINFO* info)
+void Bridge::GuiRegisterScriptLanguage(SCRIPTTYPEINFO *info)
 {
     LogFunctionName;
     return;
@@ -675,7 +708,7 @@ void Bridge::GuiUpdateDisable()
     return;
 }
 
-bool Bridge::GuiLoadGraph(BridgeCFGraphList* graph, duint addr)
+bool Bridge::GuiLoadGraph(BridgeCFGraphList *graph, duint addr)
 {
     LogFunctionName;
     return(true);
@@ -705,19 +738,19 @@ void Bridge::GuiEnableLog()
     return;
 }
 
-void Bridge::GuiAddFavouriteTool(const char* name, const char* description)
+void Bridge::GuiAddFavouriteTool(const char *name, const char *description)
 {
     LogFunctionName;
     return;
 }
 
-void Bridge::GuiAddFavouriteCommand(const char* name, const char* shortcut)
+void Bridge::GuiAddFavouriteCommand(const char *name, const char *shortcut)
 {
     LogFunctionName;
     return;
 }
 
-void Bridge::GuiSetFavouriteToolShortcut(const char* name, const char* shortcut)
+void Bridge::GuiSetFavouriteToolShortcut(const char *name, const char *shortcut)
 {
     LogFunctionName;
     return;
@@ -735,13 +768,13 @@ void Bridge::GuiSelectInMemoryMap(duint addr)
     return;
 }
 
-void Bridge::GuiGetActiveView(ACTIVEVIEW* activeView)
+void Bridge::GuiGetActiveView(ACTIVEVIEW *activeView)
 {
     LogFunctionName;
     return;
 }
 
-void Bridge::GuiAddInfoLine(const char* infoLine)
+void Bridge::GuiAddInfoLine(const char *infoLine)
 {
     LogFunctionName;
     return;
@@ -753,7 +786,7 @@ void Bridge::GuiProcessEvents()
     return;
 }
 
-void* Bridge::GuiTypeAddNode(void* parent, const TYPEDESCRIPTOR* type)
+void * Bridge::GuiTypeAddNode(void *parent, const TYPEDESCRIPTOR *type)
 {
     LogFunctionName;
     return(NULL);
@@ -783,7 +816,7 @@ void Bridge::GuiFlushLog()
     return;
 }
 
-void Bridge::GuiReferenceAddCommand(const char* title, const char* command)
+void Bridge::GuiReferenceAddCommand(const char *title, const char *command)
 {
     LogFunctionName;
     return;
@@ -795,7 +828,7 @@ void Bridge::GuiUpdateTraceBrowser()
     return;
 }
 
-void Bridge::GuiOpenTraceFile(const char* fileName)
+void Bridge::GuiOpenTraceFile(const char *fileName)
 {
     LogFunctionName;
     return;
@@ -807,13 +840,13 @@ void Bridge::GuiInvalidateSymbolSource(duint base)
     return;
 }
 
-void Bridge::GuiExecuteOnGuiThreadEx(GUICALLBACKEX cbGuiThread, void* userdata)
+void Bridge::GuiExecuteOnGuiThreadEx(GUICALLBACKEX cbGuiThread, void *userdata)
 {
     LogFunctionName;
     return;
 }
 
-void Bridge::GuiGetCurrentGraph(BridgeCFGraphList* graphList)
+void Bridge::GuiGetCurrentGraph(BridgeCFGraphList *graphList)
 {
     LogFunctionName;
     return;
@@ -846,7 +879,7 @@ void Bridge::GuiShowTrace()
 DWORD Bridge::GuiGetMainThreadId()
 {
     LogFunctionName;
-    return GetCurrentThreadId();
+    return(GetCurrentThreadId());
 }
 
 void Bridge::_WaitOutput()
@@ -857,19 +890,20 @@ void Bridge::_WaitOutput()
     }
 }
 
-std::vector <ColorPicker>  Bridge::_colors = {
-    {"Invalid value", CROSSLINE_FGCOLOR_RED},
-    {"Unknown command", CROSSLINE_FGCOLOR_RED},
-    {"[ERROR]", CROSSLINE_FGCOLOR_RED},
-    {"[TODO]", CROSSLINE_FGCOLOR_RED},
-    {"[SYMBOL]", CROSSLINE_FGCOLOR_YELLOW},
-    {"[LOG]", CROSSLINE_FGCOLOR_BLUE},
-    {"[PLUGIN]", CROSSLINE_FGCOLOR_GREEN}
+std::vector <ColorPicker> Bridge::_colors =
+{
+    { "Invalid value",   CROSSLINE_FGCOLOR_RED    },
+    { "Unknown command", CROSSLINE_FGCOLOR_RED    },
+    { "[ERROR]",         CROSSLINE_FGCOLOR_RED    },
+    { "[TODO]",          CROSSLINE_FGCOLOR_RED    },
+    { "[SYMBOL]",        CROSSLINE_FGCOLOR_YELLOW },
+    { "[LOG]",           CROSSLINE_FGCOLOR_BLUE   },
+    { "[PLUGIN]",        CROSSLINE_FGCOLOR_GREEN  }
 };
 
-int Bridge::Printf(const char* format, ...)
+int Bridge::Printf(const char *format, ...)
 {
-    std::lock_guard<std::mutex> lock(_printMutex);
+    std::lock_guard <std::mutex> lock(_printMutex);
 
     for (auto c : _colors)
     {
@@ -884,19 +918,19 @@ int Bridge::Printf(const char* format, ...)
     int result = vprintf(format, args);
     va_end(args);
     crossline_color_set(crossline_color_e(CROSSLINE_FGCOLOR_DEFAULT | CROSSLINE_BGCOLOR_BLACK));
-    return result;
+    return(result);
 }
 
-int Bridge::Printf(const wchar_t* format, ...)
+int Bridge::Printf(const wchar_t *format, ...)
 {
     va_list args;
     va_start(args, format);
     int result = vwprintf(format, args);
     va_end(args);
-    return result;
+    return(result);
 }
 
-void completion_hook(char const* buf, crossline_completions_t* pCompletion)
+void completion_hook(char const *buf, crossline_completions_t *pCompletion)
 {
     size_t size = strlen(buf);
 
@@ -909,7 +943,7 @@ void completion_hook(char const* buf, crossline_completions_t* pCompletion)
     }
 }
 
-int Bridge::MainLoop(int argc, char* argv[])
+int Bridge::MainLoop(int argc, char *argv[])
 {
     _DbgInit();
     _WaitOutput();
@@ -927,11 +961,11 @@ int Bridge::MainLoop(int argc, char* argv[])
         }
         _DbgExecCmd(cmd);
         Sleep(200);
-       
+
         _WaitOutput();
     }
 
     crossline_history_save(HISTORY_FILE);
 
-    return 0;
+    return(0);
 }

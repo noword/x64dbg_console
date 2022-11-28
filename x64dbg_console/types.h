@@ -98,6 +98,49 @@ typedef struct _TYPEDESCRIPTOR
 
 typedef enum
 {
+    arg_normal,
+    arg_memory
+} DISASM_ARGTYPE;
+
+typedef enum
+{
+    SEG_DEFAULT,
+    SEG_ES,
+    SEG_DS,
+    SEG_FS,
+    SEG_GS,
+    SEG_CS,
+    SEG_SS
+} SEGMENTREG;
+
+typedef struct
+{
+    DISASM_ARGTYPE type; //normal/memory
+    SEGMENTREG segment;
+    char mnemonic[64];
+    duint constant; //constant in the instruction (imm/disp)
+    duint value; //equal to constant or equal to the register value
+    duint memvalue; //memsize:[value]
+} DISASM_ARG;
+
+typedef enum
+{
+    instr_normal,
+    instr_branch,
+    instr_stack
+} DISASM_INSTRTYPE;
+
+typedef struct
+{
+    char instruction[64];
+    DISASM_INSTRTYPE type;
+    int argcount;
+    int instr_size;
+    DISASM_ARG arg[3];
+} DISASM_INSTR;
+
+typedef enum
+{
     DBG_SCRIPT_LOAD,                // param1=const char* filename,      param2=unused
     DBG_SCRIPT_UNLOAD,              // param1=unused,                    param2=unused
     DBG_SCRIPT_RUN,                 // param1=int destline,              param2=unused
@@ -312,11 +355,11 @@ typedef const char(*DBGINIT)();
 
 // DBG typedefs
 typedef duint(*DBGSENDMESSAGE)(DBGMSG type, void* param1, void* param2);
-
+typedef bool (*DBGMEMREAD)(duint addr, void* dest, duint size, duint* read);
 
 #ifdef _DEBUG
-#define Log(fmt, ...)    Printf("[LOG] " fmt, __VA_ARGS__);
-#define LogFunctionName    Log("*** " __FUNCTION__ " ***\n");
+#define Log(fmt, ...)    Printf("[LOG] " fmt "\n", __VA_ARGS__);
+#define LogFunctionName    Log("*** " __FUNCTION__ " ***");
 #else
 #define LogFunctionName
 #define Log(fmt, ...)
