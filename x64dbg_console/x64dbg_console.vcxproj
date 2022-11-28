@@ -145,6 +145,7 @@
     <ClCompile Include="gui.cpp" />
     <ClCompile Include="hooker.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="output.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="bridge.h" />

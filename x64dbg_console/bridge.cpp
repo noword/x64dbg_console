@@ -68,6 +68,7 @@ void Bridge::_AutoCompleteAdd(const char *command)
         _commands.push_back(token);
         s.erase(0, pos + 1);
     }
+    _commands.push_back(s);
 }
 
 Bridge::~Bridge()
@@ -189,6 +190,10 @@ HWND Bridge::GuiGetWindowHandle()
 void Bridge::GuiDumpAt(duint va)
 {
     LogFunctionName;
+    if (_dbgState != running && _dbgState != stopped)
+    {
+        _PrintMemory(va, 10);
+    }
     return;
 }
 
@@ -365,6 +370,10 @@ void Bridge::GuiReferenceSetSearchStartCol(int col)
 void Bridge::GuiStackDumpAt(duint addr, duint csp)
 {
     LogFunctionName;
+    if (_dbgState != running && _dbgState != stopped)
+    {
+        _PrintStack(addr, 10);
+    }
     return;
 }
 
@@ -853,165 +862,6 @@ DWORD Bridge::GuiGetMainThreadId()
 {
     LogFunctionName;
     return GetCurrentThreadId();
-}
-
-void Bridge::_WaitOutput()
-{
-    while (GetTickCount() - _lastLogTime < 500 || _dbgState == running)
-    {
-        Sleep(200);
-    }
-}
-
-std::vector <ColorPicker> Bridge::_colors =
-{
-    { "Invalid value",   CROSSLINE_FGCOLOR_RED    },
-    { "Unknown command", CROSSLINE_FGCOLOR_RED    },
-    { "[ERROR]",         CROSSLINE_FGCOLOR_RED    },
-    { "[TODO]",          CROSSLINE_FGCOLOR_RED    },
-    { "[SYMBOL]",        CROSSLINE_FGCOLOR_YELLOW },
-    { "[LOG]",           CROSSLINE_FGCOLOR_BLUE   },
-    { "[PLUGIN]",        CROSSLINE_FGCOLOR_GREEN  }
-};
-
-int Bridge::Printf(const char *format, ...)
-{
-    std::lock_guard <std::mutex> lock(_printMutex);
-
-    for (auto c : _colors)
-    {
-        if (c.prefix.compare(0, c.prefix.size(), format, c.prefix.size()) == 0)
-        {
-            crossline_color_set(c.color);
-            break;
-        }
-    }
-    va_list args;
-    va_start(args, format);
-    int result = vprintf(format, args);
-    va_end(args);
-    crossline_color_set(crossline_color_e(CROSSLINE_FGCOLOR_DEFAULT | CROSSLINE_BGCOLOR_BLACK));
-    return result;
-}
-
-int Bridge::Printf(const wchar_t *format, ...)
-{
-    va_list args;
-    va_start(args, format);
-    int result = vwprintf(format, args);
-    va_end(args);
-    return result;
-}
-
-#define INSTR_BUF_SIZE        10
-#define COLOR_ADDRESS         CROSSLINE_FGCOLOR_BLUE
-#define COLOR_HEX             CROSSLINE_FGCOLOR_CYAN
-#define COLOR_INSTR_NORMAL    crossline_color_e(CROSSLINE_FGCOLOR_WHITE | CROSSLINE_FGCOLOR_BRIGHT)
-#define COLOR_INSTR_BRANCH    crossline_color_e(CROSSLINE_FGCOLOR_CYAN | CROSSLINE_FGCOLOR_BRIGHT)
-#define COLOR_INSTR_STACK     crossline_color_e(CROSSLINE_FGCOLOR_BLUE | CROSSLINE_FGCOLOR_BRIGHT)
-#define COLOR_ARG_NORMAL      CROSSLINE_FGCOLOR_WHITE
-#define COLOR_ARG_MEMORY      crossline_color_e(CROSSLINE_FGCOLOR_MAGENTA | CROSSLINE_FGCOLOR_BRIGHT)
-#define COLOR_ARG_DIGITAL     crossline_color_e(CROSSLINE_FGCOLOR_YELLOW | CROSSLINE_FGCOLOR_BRIGHT)
-
-int Bridge::_PrintDisasm(duint addr, int count)
-{
-    DISASM_INSTR  instr;
-    unsigned char buf[INSTR_BUF_SIZE];
-    int           total = 0;
-    std::lock_guard <std::mutex> lock(_printMutex);
-
-    for (int i = 0; i < count; i++)
-    {
-        _DbgSendMessage(DBG_DISASM_AT, (void *)addr, &instr);
-        // display address
-        crossline_color_set(COLOR_ADDRESS);
-        printf(HEX_FORMAT " ", addr);
-
-        // dislpay hex memory
-        crossline_color_set(COLOR_HEX);
-        int size = min(instr.instr_size, INSTR_BUF_SIZE);
-        _DbgMemRead(addr, buf, size, 0);
-        for (int j = 0; j < INSTR_BUF_SIZE + 1; j++)
-        {
-            if (j < size)
-            {
-                printf("%02x", buf[j]);
-            }
-            else
-            {
-                printf("  ");
-            }
-        }
-
-        // display instr only
-        crossline_color_e color = CROSSLINE_FGCOLOR_DEFAULT;
-        switch (instr.type)
-        {
-        case instr_normal:
-            color = COLOR_INSTR_NORMAL;
-            break;
-
-        case instr_branch:
-            color = COLOR_INSTR_BRANCH;
-            break;
-
-        case instr_stack:
-            color = COLOR_INSTR_STACK;
-            break;
-        }
-        crossline_color_set(color);
-        char *instrp = strchr(instr.instruction, ' ');
-        if (instrp)
-        {
-            *instrp = '\x00';
-        }
-        printf("%s ", instr.instruction);
-        instrp++;
-
-        // display args
-        for (int j = 0; j < instr.argcount; j++)
-        {
-            DISASM_ARG *arg = &instr.arg[j];
-            char *      p;
-            strtol(arg->mnemonic, &p, 16);
-            if (*p == '\x00')
-            {
-                color = COLOR_ARG_DIGITAL;
-            }
-            else
-            {
-                switch (arg->type)
-                {
-                case arg_normal:
-                    color = COLOR_ARG_NORMAL;
-                    break;
-
-                case arg_memory:
-                    color = COLOR_ARG_MEMORY;
-                    break;
-                }
-            }
-            crossline_color_set(color);
-            p = strchr(instrp, ',');
-            if (p)
-            {
-                *p = '\x00';
-            }
-            printf(instrp);
-            instrp = p + 1;
-            crossline_color_set(CROSSLINE_FGCOLOR_DEFAULT);
-            if (j + 1 < instr.argcount)
-            {
-                printf(",");
-            }
-        }
-        printf("\n");
-
-        addr  += instr.instr_size;
-        total += instr.instr_size;
-    }
-
-    return total;
 }
 
 void completion_hook(char const *buf, crossline_completions_t *pCompletion)

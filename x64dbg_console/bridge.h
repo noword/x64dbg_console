@@ -19,13 +19,13 @@
     #define BRIDGE_LIB_NAME    "x64bridge.dll"
     #define GUI_LIB_NAME       "x64gui.dll"
     #define PROMPT             "(x64dbg) "
-    #define HEX_FORMAT         "%016llx"
+    #define HEX_FORMAT         "%016llX"
 #else
     #define DBG_LIB_NAME       "x32dbg.dll"
     #define BRIDGE_LIB_NAME    "x32bridge.dll"
     #define GUI_LIB_NAME       "x32gui.dll"
     #define PROMPT             "(x32dbg) "
-    #define HEX_FORMAT         "%08x"
+    #define HEX_FORMAT         "%08X"
 #endif // ifdef _WIN64
 
 #define HISTORY_FILE           ".history.txt"
@@ -190,7 +190,10 @@ private:
 
     duint _DbgSendMessage(DBGMSG type, void *param1, void *param2) { return __dbg_sendmessage(type, param1, param2); };
     bool _DbgMemRead(duint addr, void *dest, duint size, duint *read) { return __dbg_memread(addr, dest, size, read); };
-    int _PrintDisasm(duint addr, int count = 1);
+    void _PrintDisasm(duint addr, int count = 1);
+    void _PrintStack(duint addr, int count = 1);
+    void _PrintMemory(duint addr, int line = 1);
+
 
     std::vector <std::string> _commands;
     static std::vector <ColorPicker> _colors;
