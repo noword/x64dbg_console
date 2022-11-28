@@ -2,27 +2,37 @@
 #include <Windows.h>
 #include <vector>
 #include <string>
-#include <mutex> 
+#include <mutex>
 #include "crossline.h"
 #include "types.h"
+
+#ifdef _DEBUG
+#define Log(fmt, ...)    Printf("[LOG] " fmt "\n", __VA_ARGS__);
+#define LogFunctionName    Log("*** " __FUNCTION__ " ***");
+#else
+#define LogFunctionName
+#define Log(fmt, ...)
+#endif // ifdef _DEBUG
 
 #ifdef _WIN64
     #define DBG_LIB_NAME       "x64dbg.dll"
     #define BRIDGE_LIB_NAME    "x64bridge.dll"
     #define GUI_LIB_NAME       "x64gui.dll"
     #define PROMPT             "(x64dbg) "
+    #define HEX_FORMAT         "%016llx"
 #else
     #define DBG_LIB_NAME       "x32dbg.dll"
     #define BRIDGE_LIB_NAME    "x32bridge.dll"
     #define GUI_LIB_NAME       "x32gui.dll"
-#define PROMPT                 "(x32dbg) "
+    #define PROMPT             "(x32dbg) "
+    #define HEX_FORMAT         "%08x"
 #endif // ifdef _WIN64
 
 #define HISTORY_FILE           ".history.txt"
 
 struct ColorPicker
 {
-    std::string prefix;
+    std::string       prefix;
     crossline_color_e color;
 };
 
@@ -34,10 +44,10 @@ public:
 
     bool Init();
     int MainLoop(int argc, char *argv[]);
-    int Printf(const char* format, ...);
-    int Printf(const wchar_t* format, ...);
+    int Printf(const char *format, ...);
+    int Printf(const wchar_t *format, ...);
 
-    const std::vector <std::string>& GetCommands() { return(_commands); };
+    const std::vector <std::string>& GetCommands() { return _commands; };
 
     const char * GuiTranslateText(const char *Source);
     void GuiDisasmAt(duint addr, duint cip);
@@ -166,18 +176,21 @@ public:
 
 private:
     // Singleton
-    Bridge() {};
+    Bridge() : _dbgState(stopped) {};
     virtual ~Bridge();
     Bridge(Bridge& other) {};
     Bridge& operator=(Bridge& other) {};
     static Bridge *instance;
 
     void _WaitOutput();
-    bool _DbgExecCmd(const char *command) { return(_DbgCmdExec(command)); };
-    DBGSTATE _GetDbgState() { return(_dbgState); };
+
+    bool _DbgExecCmd(const char *command) { return _DbgCmdExec(command); };
+    DBGSTATE _GetDbgState() { return _dbgState; };
     void _AutoCompleteAdd(const char *command);
+
     duint _DbgSendMessage(DBGMSG type, void *param1, void *param2) { return __dbg_sendmessage(type, param1, param2); };
-    bool _DbgMemRead(duint addr, void* dest, duint size, duint* read) { return __dbg_memread(addr, dest, size, read); };
+    bool _DbgMemRead(duint addr, void *dest, duint size, duint *read) { return __dbg_memread(addr, dest, size, read); };
+    int _PrintDisasm(duint addr, int count = 1);
 
     std::vector <std::string> _commands;
     static std::vector <ColorPicker> _colors;

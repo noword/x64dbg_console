@@ -9,8 +9,8 @@ const char * _gui_translate_text(const char *source)
 
 void * _gui_sendmessage(GUIMSG type, void *param1, void *param2)
 {
-    void *result = nullptr;
-    Bridge* bridge = Bridge::GetInstance();
+    void *  result = nullptr;
+    Bridge *bridge = Bridge::GetInstance();
 
     switch (type)
     {
@@ -190,23 +190,23 @@ void * _gui_sendmessage(GUIMSG type, void *param1, void *param2)
         break;
 
     case GUI_SELECTION_GET: // param1=GUISELECTIONTYPE,     param2=SELECTIONDATA* selection
-        result = (void*)bridge->GuiSelectionGet(GUISELECTIONTYPE(duint(param1)), (SELECTIONDATA*)param2);
+        result = (void *)bridge->GuiSelectionGet(GUISELECTIONTYPE(duint(param1)), (SELECTIONDATA *)param2);
         break;
 
     case GUI_SELECTION_SET: // param1=GUISELECTIONTYPE,     param2=const SELECTIONDATA* selection
-        result = (void*)bridge->GuiSelectionSet(GUISELECTIONTYPE(duint(param1)), (SELECTIONDATA*)param2);
+        result = (void *)bridge->GuiSelectionSet(GUISELECTIONTYPE(duint(param1)), (SELECTIONDATA *)param2);
         break;
 
     case GUI_GETLINE_WINDOW: // param1=const char* title,    param2=char* text
-        result = (void*)bridge->GuiGetLineWindow((const char*)param1, (char*)param2);
+        result = (void *)bridge->GuiGetLineWindow((const char *)param1, (char *)param2);
         break;
 
     case GUI_AUTOCOMPLETE_ADDCMD: // param1=const char* cmd,      param2=ununsed
-        bridge->GuiAutoCompleteAddCmd((const char*)param1);
+        bridge->GuiAutoCompleteAddCmd((const char *)param1);
         break;
 
     case GUI_AUTOCOMPLETE_DELCMD: // param1=const char* cmd,      param2=ununsed
-        bridge->GuiAutoCompleteDelCmd((const char*)param1);
+        bridge->GuiAutoCompleteDelCmd((const char *)param1);
         break;
 
     case GUI_AUTOCOMPLETE_CLEARALL: // param1=unused,               param2=unused
@@ -218,7 +218,7 @@ void * _gui_sendmessage(GUIMSG type, void *param1, void *param2)
         break;
 
     case GUI_ADD_MSG_TO_STATUSBAR: // param1=const char* msg,      param2=unused
-        bridge->GuiAddStatusBarMessage((const char*)param1);
+        bridge->GuiAddStatusBarMessage((const char *)param1);
         break;
 
     case GUI_UPDATE_SIDEBAR: // param1=unused,               param2=unused
@@ -250,19 +250,19 @@ void * _gui_sendmessage(GUIMSG type, void *param1, void *param2)
         break;
 
     case GUI_REF_INITIALIZE: // param1=const char* name,     param2=unused
-        bridge->GuiReferenceInitialize((const char*)param1);
+        bridge->GuiReferenceInitialize((const char *)param1);
         break;
 
     case GUI_LOAD_SOURCE_FILE: // param1=const char* path,     param2=duint addr
-        bridge->GuiLoadSourceFileEx((const char*)param1, (duint)param2);
+        bridge->GuiLoadSourceFileEx((const char *)param1, (duint)param2);
         break;
 
     case GUI_MENU_SET_ICON: // param1=int hMenu,            param2=ICONINFO*
-        bridge->GuiMenuSetIcon((int)param1, (const ICONDATA*)param2);
+        bridge->GuiMenuSetIcon((int)param1, (const ICONDATA *)param2);
         break;
 
     case GUI_MENU_SET_ENTRY_ICON: // param1=int hEntry,           param2=ICONINFO*
-        bridge->GuiMenuSetEntryIcon((int)param1, (const ICONDATA*)param2);
+        bridge->GuiMenuSetEntryIcon((int)param1, (const ICONDATA *)param2);
         break;
 
     case GUI_SHOW_CPU: // param1=unused,               param2=unused
@@ -290,19 +290,19 @@ void * _gui_sendmessage(GUIMSG type, void *param1, void *param2)
         break;
 
     case GUI_SET_GLOBAL_NOTES:     // param1=const char* text,     param2=unused
-        bridge->GuiSetGlobalNotes((const char*)param1);
+        bridge->GuiSetGlobalNotes((const char *)param1);
         break;
 
     case GUI_GET_GLOBAL_NOTES:     // param1=char** text,          param2=unused
-        bridge->GuiGetGlobalNotes((char**)param1);
+        bridge->GuiGetGlobalNotes((char **)param1);
         break;
 
     case GUI_SET_DEBUGGEE_NOTES:     // param1=const char* text,     param2=unused
-        bridge->GuiSetDebuggeeNotes((char*)param1);
+        bridge->GuiSetDebuggeeNotes((char *)param1);
         break;
 
     case GUI_GET_DEBUGGEE_NOTES:     // param1=char** text,          param2=unused
-        bridge->GuiGetDebuggeeNotes((char**)param1);
+        bridge->GuiGetDebuggeeNotes((char **)param1);
         break;
 
     case GUI_DUMP_AT_N:     // param1=int index,            param2=duint va
@@ -310,11 +310,11 @@ void * _gui_sendmessage(GUIMSG type, void *param1, void *param2)
         break;
 
     case GUI_DISPLAY_WARNING:     // param1=const char *text,     param2=unused
-        bridge->GuiDisplayWarning((const char*)param1, (const char*)param2);
+        bridge->GuiDisplayWarning((const char *)param1, (const char *)param2);
         break;
 
     case GUI_REGISTER_SCRIPT_LANG:     // param1=SCRIPTTYPEINFO* info, param2=unused
-        bridge->GuiRegisterScriptLanguage((SCRIPTTYPEINFO*)param1);
+        bridge->GuiRegisterScriptLanguage((SCRIPTTYPEINFO *)param1);
         break;
 
     case GUI_UNREGISTER_SCRIPT_LANG:     // param1=int id,               param2=unused
@@ -334,11 +334,11 @@ void * _gui_sendmessage(GUIMSG type, void *param1, void *param2)
         break;
 
     case GUI_LOAD_GRAPH:     // param1=BridgeCFGraphList*    param2=unused
-        result = (void*)bridge->GuiLoadGraph((BridgeCFGraphList*)param1, duint(param2));
+        result = (void *)bridge->GuiLoadGraph((BridgeCFGraphList *)param1, duint(param2));
         break;
 
     case GUI_GRAPH_AT:     // param1=duint addr            param2=unused
-        result = (void*)bridge->GuiGraphAt(duint(param1));
+        result = (void *)bridge->GuiGraphAt(duint(param1));
         break;
 
     case GUI_UPDATE_GRAPH_VIEW:     // param1=unused,               param2=unused
@@ -350,15 +350,15 @@ void * _gui_sendmessage(GUIMSG type, void *param1, void *param2)
         break;
 
     case GUI_ADD_FAVOURITE_TOOL:     // param1=const char* name      param2=const char* description
-        bridge->GuiAddFavouriteTool((const char*)param1, (const char*)param2);
+        bridge->GuiAddFavouriteTool((const char *)param1, (const char *)param2);
         break;
 
     case GUI_ADD_FAVOURITE_COMMAND:     // param1=const char* command   param2=const char* shortcut
-        bridge->GuiAddFavouriteCommand((const char*)param1, (const char*)param2);
+        bridge->GuiAddFavouriteCommand((const char *)param1, (const char *)param2);
         break;
 
     case GUI_SET_FAVOURITE_TOOL_SHORTCUT:     // param1=const char* name      param2=const char* shortcut
-        bridge->GuiSetFavouriteToolShortcut((const char*)param1, (const char*)param2);
+        bridge->GuiSetFavouriteToolShortcut((const char *)param1, (const char *)param2);
         break;
 
     case GUI_FOLD_DISASSEMBLY:     // param1=duint startAddress    param2=duint length
@@ -370,7 +370,7 @@ void * _gui_sendmessage(GUIMSG type, void *param1, void *param2)
         break;
 
     case GUI_GET_ACTIVE_VIEW:     // param1=ACTIVEVIEW*,          param2=unused
-        bridge->GuiGetActiveView((ACTIVEVIEW*)param1);
+        bridge->GuiGetActiveView((ACTIVEVIEW *)param1);
         break;
 
     case GUI_MENU_SET_ENTRY_CHECKED:     // param1=int hEntry,           param2=bool checked
@@ -378,7 +378,7 @@ void * _gui_sendmessage(GUIMSG type, void *param1, void *param2)
         break;
 
     case GUI_ADD_INFO_LINE:     // param1=const char* infoline, param2=unused
-        bridge->GuiAddInfoLine((const char*)param1);
+        bridge->GuiAddInfoLine((const char *)param1);
         break;
 
     case GUI_PROCESS_EVENTS:     // param1=unused,               param2=unused
@@ -386,7 +386,7 @@ void * _gui_sendmessage(GUIMSG type, void *param1, void *param2)
         break;
 
     case GUI_TYPE_ADDNODE:     // param1=void* parent,         param2=TYPEDESCRIPTOR* type
-        bridge->GuiTypeAddNode(param1, (TYPEDESCRIPTOR*)param2);
+        bridge->GuiTypeAddNode(param1, (TYPEDESCRIPTOR *)param2);
         break;
 
     case GUI_TYPE_CLEAR:     // param1=unused,               param2=unused
@@ -410,11 +410,11 @@ void * _gui_sendmessage(GUIMSG type, void *param1, void *param2)
         break;
 
     case GUI_MENU_SET_NAME:     // param1=int hMenu,            param2=const char* name
-        bridge->GuiMenuSetName((int)param1, (const char*)param2);
+        bridge->GuiMenuSetName((int)param1, (const char *)param2);
         break;
 
     case GUI_MENU_SET_ENTRY_NAME:     // param1=int hEntry,           param2=const char* name
-        bridge->GuiMenuSetEntryName((int)param1, (const char*)param2);
+        bridge->GuiMenuSetEntryName((int)param1, (const char *)param2);
         break;
 
     case GUI_FLUSH_LOG:     // param1=unused,               param2=unused
@@ -422,7 +422,7 @@ void * _gui_sendmessage(GUIMSG type, void *param1, void *param2)
         break;
 
     case GUI_MENU_SET_ENTRY_HOTKEY:     // param1=int hEntry,           param2=const char* hack
-        bridge->GuiMenuSetEntryHotkey((int)param1, (const char*)param2);
+        bridge->GuiMenuSetEntryHotkey((int)param1, (const char *)param2);
         break;
 
     case GUI_REF_SEARCH_GETROWCOUNT:     // param1=unused,               param2=unused
@@ -438,11 +438,11 @@ void * _gui_sendmessage(GUIMSG type, void *param1, void *param2)
         break;
 
     case GUI_REF_ADDCOMMAND:     // param1=const char* title,    param2=const char* command
-        bridge->GuiReferenceAddCommand((const char*)param1, (const char*)param2);
+        bridge->GuiReferenceAddCommand((const char *)param1, (const char *)param2);
         break;
 
     case GUI_OPEN_TRACE_FILE:     // param1=const char* file name,param2=unused
-        bridge->GuiOpenTraceFile((const char*)param1);
+        bridge->GuiOpenTraceFile((const char *)param1);
         break;
 
     case GUI_UPDATE_TRACE_BROWSER:     // param1=unused,               param2=unused
@@ -454,7 +454,7 @@ void * _gui_sendmessage(GUIMSG type, void *param1, void *param2)
         break;
 
     case GUI_GET_CURRENT_GRAPH:     // param1=BridgeCFGraphList*,   param2=unused
-        bridge->GuiGetCurrentGraph((BridgeCFGraphList*)param1);
+        bridge->GuiGetCurrentGraph((BridgeCFGraphList *)param1);
         break;
 
     case GUI_SHOW_REF:     // param1=unused,               param2=unused
@@ -474,22 +474,21 @@ void * _gui_sendmessage(GUIMSG type, void *param1, void *param2)
         break;
 
     case GUI_GET_MAIN_THREAD_ID:     // param1=unused,               param2=unused
-        result = (void*)bridge->GuiGetMainThreadId();
+        result = (void *)bridge->GuiGetMainThreadId();
         break;
 
     case GUI_ADD_MSG_TO_LOG_HTML:     // param1=(const char*)msg,     param2=unused
-        bridge->GuiAddLogMessageHtml((const char*)param1);
+        bridge->GuiAddLogMessageHtml((const char *)param1);
         break;
 
     default:
-        bridge->Printf("[TODO] Not implemented Gui Message: %d\n",  type);
+        bridge->Printf("[TODO] Not implemented Gui Message: %d\n", type);
         break;
     }
-    return(result);
+    return result;
 }
 
 int _gui_guiinit(int argc, char *argv[])
 {
     return Bridge::GetInstance()->MainLoop(argc, argv);
 }
-

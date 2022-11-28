@@ -8,7 +8,7 @@
     if (!MODULE)                                        \
     {                                                   \
         Printf("[ERROR] failed to load library " NAME); \
-        return(false);                                  \
+        return false;                                   \
     }
 
 #define GET_ADDRESS(MODULE, NAME)                             \
@@ -16,7 +16,7 @@
     if (!_ ## NAME)                                           \
     {                                                         \
         Printf("[ERROR] failed to find export " #NAME);       \
-        return(false);                                        \
+        return false;                                         \
     }
 
 bool Bridge::Init()
@@ -44,17 +44,17 @@ bool Bridge::Init()
     if (errormsg)
     {
         Printf(L"[ERROR] %s", errormsg);
-        return(false);
+        return false;
     }
 
     errormsg = _BridgeStart();
     if (errormsg)
     {
         Printf(L"[ERROR] %s", errormsg);
-        return(false);
+        return false;
     }
 
-    return(true);
+    return true;
 }
 
 void Bridge::_AutoCompleteAdd(const char *command)
@@ -84,7 +84,7 @@ Bridge * Bridge::GetInstance()
     {
         instance = new Bridge();
     }
-    return(instance);
+    return instance;
 }
 
 void Bridge::FreeInstance()
@@ -99,44 +99,17 @@ void Bridge::FreeInstance()
 const char * Bridge::GuiTranslateText(const char *Source)
 {
     //LogFunctionName;
-    return(Source);
+    return Source;
 }
 
 void Bridge::GuiDisasmAt(duint addr, duint cip)
 {
     LogFunctionName;
-    Log("addr: %0llx, cip: %llx", addr, cip);
+    Log("addr: " HEX_FORMAT ", cip: " HEX_FORMAT, addr, cip);
 
-#define INSTR_BUF_SIZE 16
-
-    if (_dbgState != running)
+    if (_dbgState != running && _dbgState != stopped)
     {
-        std::lock_guard <std::mutex> lock(_printMutex);
-        DISASM_INSTR instr;
-        unsigned char buf[INSTR_BUF_SIZE];
-        for (int i = 0; i < 10; i++)
-        {
-            _DbgSendMessage(DBG_DISASM_AT, (void *)addr, &instr);
-            crossline_color_set(CROSSLINE_FGCOLOR_BLUE);
-            printf("%llx ", addr);
-            crossline_color_set(CROSSLINE_FGCOLOR_CYAN);
-            int size = min(instr.instr_size, INSTR_BUF_SIZE);
-            _DbgMemRead(addr, buf, size, 0);
-            for (int j = 0; j < 16; j++)
-            {
-                if (j <= size)
-                {
-                    printf("%02x", buf[j]);
-                }
-                else
-                {
-                    printf("  ");
-                }
-            }
-            crossline_color_set(CROSSLINE_FGCOLOR_DEFAULT);
-            printf("\t%s\n", instr.instruction);
-            addr += instr.instr_size;
-        }
+        _PrintDisasm(addr, 10);
     }
     return;
 }
@@ -210,7 +183,7 @@ void Bridge::GuiUpdateWindowTitle(const char *filename)
 HWND Bridge::GuiGetWindowHandle()
 {
     LogFunctionName;
-    return(GetConsoleWindow());
+    return GetConsoleWindow();
 }
 
 void Bridge::GuiDumpAt(duint va)
@@ -264,7 +237,7 @@ void Bridge::GuiScriptMessage(const char *message)
 int Bridge::GuiScriptMsgyn(const char *message)
 {
     LogFunctionName;
-    return(0);
+    return 0;
 }
 
 void Bridge::GuiScriptEnableHighlighting(bool enable)
@@ -320,13 +293,13 @@ void Bridge::GuiReferenceSetRowCount(int count)
 int Bridge::GuiReferenceGetRowCount()
 {
     LogFunctionName;
-    return(0);
+    return 0;
 }
 
 int Bridge::GuiReferenceSearchGetRowCount()
 {
     LogFunctionName;
-    return(0);
+    return 0;
 }
 
 void Bridge::GuiReferenceDeleteAllColumns()
@@ -350,13 +323,13 @@ void Bridge::GuiReferenceSetCellContent(int row, int col, const char *str)
 char * Bridge::GuiReferenceGetCellContent(int row, int col)
 {
     LogFunctionName;
-    return(NULL);
+    return NULL;
 }
 
 char * Bridge::GuiReferenceSearchGetCellContent(int row, int col)
 {
     LogFunctionName;
-    return(NULL);
+    return NULL;
 }
 
 void Bridge::GuiReferenceReloadData()
@@ -434,19 +407,19 @@ void Bridge::GuiSetLastException(unsigned int exception)
 bool Bridge::GuiGetDisassembly(duint addr, char *text)
 {
     LogFunctionName;
-    return(true);
+    return true;
 }
 
 int Bridge::GuiMenuAdd(int hMenu, const char *title)
 {
     LogFunctionName;
-    return(hMenu);
+    return hMenu;
 }
 
 int Bridge::GuiMenuAddEntry(int hMenu, const char *title)
 {
     LogFunctionName;
-    return(hMenu);
+    return hMenu;
 }
 
 void Bridge::GuiMenuAddSeparator(int hMenu)
@@ -470,19 +443,19 @@ void Bridge::GuiMenuRemove(int hEntryMenu)
 bool Bridge::GuiSelectionGet(GUISELECTIONTYPE hWindow, SELECTIONDATA *selection)
 {
     LogFunctionName;
-    return(true);
+    return true;
 }
 
 bool Bridge::GuiSelectionSet(GUISELECTIONTYPE hWindow, const SELECTIONDATA *selection)
 {
     LogFunctionName;
-    return(true);
+    return true;
 }
 
 bool Bridge::GuiGetLineWindow(const char *title, char *text)
 {
     LogFunctionName;
-    return(true);
+    return true;
 }
 
 void Bridge::GuiAutoCompleteAddCmd(const char *cmd)
@@ -693,7 +666,7 @@ void Bridge::GuiFocusView(int hWindow)
 bool Bridge::GuiIsUpdateDisabled()
 {
     LogFunctionName;
-    return(false);
+    return false;
 }
 
 void Bridge::GuiUpdateEnable(bool updateNow)
@@ -711,13 +684,13 @@ void Bridge::GuiUpdateDisable()
 bool Bridge::GuiLoadGraph(BridgeCFGraphList *graph, duint addr)
 {
     LogFunctionName;
-    return(true);
+    return true;
 }
 
 duint Bridge::GuiGraphAt(duint addr)
 {
     LogFunctionName;
-    return(addr);
+    return addr;
 }
 
 void Bridge::GuiUpdateGraphView()
@@ -789,13 +762,13 @@ void Bridge::GuiProcessEvents()
 void * Bridge::GuiTypeAddNode(void *parent, const TYPEDESCRIPTOR *type)
 {
     LogFunctionName;
-    return(NULL);
+    return NULL;
 }
 
 bool Bridge::GuiTypeClear()
 {
     LogFunctionName;
-    return(true);
+    return true;
 }
 
 void Bridge::GuiUpdateTypeWidget()
@@ -879,7 +852,7 @@ void Bridge::GuiShowTrace()
 DWORD Bridge::GuiGetMainThreadId()
 {
     LogFunctionName;
-    return(GetCurrentThreadId());
+    return GetCurrentThreadId();
 }
 
 void Bridge::_WaitOutput()
@@ -918,7 +891,7 @@ int Bridge::Printf(const char *format, ...)
     int result = vprintf(format, args);
     va_end(args);
     crossline_color_set(crossline_color_e(CROSSLINE_FGCOLOR_DEFAULT | CROSSLINE_BGCOLOR_BLACK));
-    return(result);
+    return result;
 }
 
 int Bridge::Printf(const wchar_t *format, ...)
@@ -927,7 +900,118 @@ int Bridge::Printf(const wchar_t *format, ...)
     va_start(args, format);
     int result = vwprintf(format, args);
     va_end(args);
-    return(result);
+    return result;
+}
+
+#define INSTR_BUF_SIZE        10
+#define COLOR_ADDRESS         CROSSLINE_FGCOLOR_BLUE
+#define COLOR_HEX             CROSSLINE_FGCOLOR_CYAN
+#define COLOR_INSTR_NORMAL    crossline_color_e(CROSSLINE_FGCOLOR_WHITE | CROSSLINE_FGCOLOR_BRIGHT)
+#define COLOR_INSTR_BRANCH    crossline_color_e(CROSSLINE_FGCOLOR_CYAN | CROSSLINE_FGCOLOR_BRIGHT)
+#define COLOR_INSTR_STACK     crossline_color_e(CROSSLINE_FGCOLOR_BLUE | CROSSLINE_FGCOLOR_BRIGHT)
+#define COLOR_ARG_NORMAL      CROSSLINE_FGCOLOR_WHITE
+#define COLOR_ARG_MEMORY      crossline_color_e(CROSSLINE_FGCOLOR_MAGENTA | CROSSLINE_FGCOLOR_BRIGHT)
+#define COLOR_ARG_DIGITAL     crossline_color_e(CROSSLINE_FGCOLOR_YELLOW | CROSSLINE_FGCOLOR_BRIGHT)
+
+int Bridge::_PrintDisasm(duint addr, int count)
+{
+    DISASM_INSTR  instr;
+    unsigned char buf[INSTR_BUF_SIZE];
+    int           total = 0;
+    std::lock_guard <std::mutex> lock(_printMutex);
+
+    for (int i = 0; i < count; i++)
+    {
+        _DbgSendMessage(DBG_DISASM_AT, (void *)addr, &instr);
+        // display address
+        crossline_color_set(COLOR_ADDRESS);
+        printf(HEX_FORMAT " ", addr);
+
+        // dislpay hex memory
+        crossline_color_set(COLOR_HEX);
+        int size = min(instr.instr_size, INSTR_BUF_SIZE);
+        _DbgMemRead(addr, buf, size, 0);
+        for (int j = 0; j < INSTR_BUF_SIZE + 1; j++)
+        {
+            if (j < size)
+            {
+                printf("%02x", buf[j]);
+            }
+            else
+            {
+                printf("  ");
+            }
+        }
+
+        // display instr only
+        crossline_color_e color = CROSSLINE_FGCOLOR_DEFAULT;
+        switch (instr.type)
+        {
+        case instr_normal:
+            color = COLOR_INSTR_NORMAL;
+            break;
+
+        case instr_branch:
+            color = COLOR_INSTR_BRANCH;
+            break;
+
+        case instr_stack:
+            color = COLOR_INSTR_STACK;
+            break;
+        }
+        crossline_color_set(color);
+        char *instrp = strchr(instr.instruction, ' ');
+        if (instrp)
+        {
+            *instrp = '\x00';
+        }
+        printf("%s ", instr.instruction);
+        instrp++;
+
+        // display args
+        for (int j = 0; j < instr.argcount; j++)
+        {
+            DISASM_ARG *arg = &instr.arg[j];
+            char *      p;
+            strtol(arg->mnemonic, &p, 16);
+            if (*p == '\x00')
+            {
+                color = COLOR_ARG_DIGITAL;
+            }
+            else
+            {
+                switch (arg->type)
+                {
+                case arg_normal:
+                    color = COLOR_ARG_NORMAL;
+                    break;
+
+                case arg_memory:
+                    color = COLOR_ARG_MEMORY;
+                    break;
+                }
+            }
+            crossline_color_set(color);
+            p = strchr(instrp, ',');
+            if (p)
+            {
+                *p = '\x00';
+            }
+            printf(instrp);
+            instrp = p + 1;
+            crossline_color_set(CROSSLINE_FGCOLOR_DEFAULT);
+            if (j + 1 < instr.argcount)
+            {
+                printf(",");
+            }
+        }
+        printf("\n");
+
+        addr  += instr.instr_size;
+        total += instr.instr_size;
+    }
+
+    return total;
 }
 
 void completion_hook(char const *buf, crossline_completions_t *pCompletion)
@@ -967,5 +1051,5 @@ int Bridge::MainLoop(int argc, char *argv[])
 
     crossline_history_save(HISTORY_FILE);
 
-    return(0);
+    return 0;
 }

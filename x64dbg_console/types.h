@@ -63,13 +63,13 @@ typedef struct
 {
     int    count; //Number of element in the list.
     size_t size;  //Size of list in bytes (used for type checking).
-    void* data;  //Pointer to the list contents. Must be deleted by the caller using BridgeFree (or BridgeList::Free).
+    void*  data;  //Pointer to the list contents. Must be deleted by the caller using BridgeFree (or BridgeList::Free).
 } ListInfo;
 
 typedef struct
 {
     duint    entryPoint; //graph entry point
-    void* userdata;   //user data
+    void*    userdata;   //user data
     ListInfo nodes;      //graph nodes (BridgeCFNodeList)
 } BridgeCFGraphList;
 
@@ -356,11 +356,3 @@ typedef const char(*DBGINIT)();
 // DBG typedefs
 typedef duint(*DBGSENDMESSAGE)(DBGMSG type, void* param1, void* param2);
 typedef bool (*DBGMEMREAD)(duint addr, void* dest, duint size, duint* read);
-
-#ifdef _DEBUG
-#define Log(fmt, ...)    Printf("[LOG] " fmt "\n", __VA_ARGS__);
-#define LogFunctionName    Log("*** " __FUNCTION__ " ***");
-#else
-#define LogFunctionName
-#define Log(fmt, ...)
-#endif // ifdef _DEBUG
