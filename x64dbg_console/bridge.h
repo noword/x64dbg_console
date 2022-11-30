@@ -193,7 +193,7 @@ private:
     void _PrintDisasm(duint addr, int count = 1);
     void _PrintStack(duint addr, int count = 1);
     void _PrintMemory(duint addr, int line = 1);
-
+    void _PrintRegisters();
 
     std::vector <std::string> _commands;
     static std::vector <ColorPicker> _colors;
@@ -209,6 +209,8 @@ private:
     BRIDGESTART _BridgeStart;
     DBGINIT _DbgInit;
     DBGDBGCMDEXEC _DbgCmdExec;
+    DBGETREGDUMPEX _DbgGetRegDumpEx;
+    DBGGETCOMMENTAT _DbgGetCommentAt;
 
     // dbg lib functions
     DBGSENDMESSAGE __dbg_sendmessage;

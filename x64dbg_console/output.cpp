@@ -9,6 +9,9 @@
 #define COLOR_ARG_MEMORY      crossline_color_e(CROSSLINE_FGCOLOR_MAGENTA | CROSSLINE_FGCOLOR_BRIGHT)
 #define COLOR_ARG_DIGITAL     crossline_color_e(CROSSLINE_FGCOLOR_YELLOW | CROSSLINE_FGCOLOR_BRIGHT)
 #define COLOR_HEADER          crossline_color_e(CROSSLINE_FGCOLOR_BLACK | CROSSLINE_BGCOLOR_WHITE)
+#define COLOR_REG_NAME        crossline_color_e(CROSSLINE_FGCOLOR_BLUE | CROSSLINE_FGCOLOR_BRIGHT)
+#define COLOR_REG_VALUE       crossline_color_e(CROSSLINE_FGCOLOR_WHITE | CROSSLINE_FGCOLOR_BRIGHT)
+#define COLOR_COMMENT         CROSSLINE_FGCOLOR_CYAN
 
 std::vector <ColorPicker> Bridge::_colors =
 {
@@ -157,13 +160,20 @@ void Bridge::_PrintStack(duint addr, int count)
     count = count > 0 ? count : 1;
     std::lock_guard <std::mutex> lock(_printMutex);
     duint *buf = new duint[count];
+    char text[MAX_COMMENT_SIZE];
     _DbgMemRead(addr, buf, sizeof(duint) * count, 0);
     for (int i = 0; i < count; i++)
     {
+        if (!_DbgGetCommentAt(buf[i], text))
+        {
+            *text = '\x00';
+        }
         crossline_color_set(COLOR_ADDRESS);
         printf(HEX_FORMAT " ", addr);
-        crossline_color_set(COLOR_ARG_NORMAL);
-        printf(HEX_FORMAT "\n", buf[i]);
+        crossline_color_set(COLOR_REG_VALUE);
+        printf(HEX_FORMAT " ", buf[i]);
+        crossline_color_set(COLOR_COMMENT);
+        printf("%s\n", text);
         addr += sizeof(duint);
     }
     delete []buf;
@@ -207,7 +217,87 @@ void Bridge::_PrintMemory(duint addr, int line)
             ascii[j] = (isprint(*p) ? *p : '.');
             p++;
         }
+        crossline_color_set(COLOR_COMMENT);
         printf(" %s\n", ascii);
         addr += 0x10;
+    }
+}
+
+#define PRINTF_REG(NAME, REG)                       \
+    crossline_color_set(COLOR_REG_NAME);            \
+    printf("%-10s", NAME);                          \
+    crossline_color_set(COLOR_REG_VALUE);           \
+    printf(HEX_FORMAT "   ", REG);                  \
+    crossline_color_set(COLOR_COMMENT); \
+    if (!_DbgGetCommentAt(REG, text))               \
+    {                                               \
+        *text = '\x00';                             \
+    }                                               \
+    printf("%s\n", text);
+
+
+#define PRINTF_FLAG(NAME, FLAG)           \
+    crossline_color_set(COLOR_REG_NAME);  \
+    printf("%-3s", NAME);                 \
+    crossline_color_set(COLOR_REG_VALUE); \
+    printf("%d ", FLAG);
+
+void Bridge::_PrintRegisters()
+{
+    REGDUMP          reg;
+    REGISTERCONTEXT *context = &reg.regcontext;
+    ULONG_PTR *      flags   = &reg.regcontext.eflags;
+    char             text[MAX_COMMENT_SIZE];
+    if (_DbgGetRegDumpEx(&reg, sizeof(REGDUMP)))
+    {
+#ifdef _WIN64
+        PRINTF_REG("RAX", context->cax);
+        PRINTF_REG("RBX", context->cbx);
+        PRINTF_REG("RCX", context->ccx);
+        PRINTF_REG("RDX", context->cdx);
+        PRINTF_REG("RBP", context->cbp);
+        PRINTF_REG("RSP", context->csp);
+        PRINTF_REG("RSI", context->csi);
+        PRINTF_REG("RDI", context->cdi);
+        printf("\n");
+        PRINTF_REG("R8", context->r8);
+        PRINTF_REG("R9", context->r9);
+        PRINTF_REG("R10", context->r10);
+        PRINTF_REG("R11", context->r11);
+        PRINTF_REG("R12", context->r12);
+        PRINTF_REG("R13", context->r13);
+        PRINTF_REG("R14", context->r14);
+        PRINTF_REG("R15", context->r15);
+        printf("\n");
+        PRINTF_REG("RIP", context->cip);
+        printf("\n");
+        PRINTF_REG("RFLAGS", context->eflags);
+#else
+        PRINTF_REG("EAX", context->cax);
+        PRINTF_REG("EBX", context->cbx);
+        PRINTF_REG("ECX", context->ccx);
+        PRINTF_REG("EDX", context->cdx);
+        PRINTF_REG("EBP", context->cbp);
+        PRINTF_REG("ESP", context->csp);
+        PRINTF_REG("ESI", context->csi);
+        PRINTF_REG("EDI", context->cdi);
+        printf("\n");
+        PRINTF_REG("EIP", context->cip);
+        printf("\n");
+        PRINTF_REG("EFLAGS", context->eflags);
+#endif
+        printf("  ");
+        PRINTF_FLAG("ZF", bool(*flags & 0x40));
+        PRINTF_FLAG("PF", bool(*flags & 4));
+        PRINTF_FLAG("AF", bool(*flags & 0x10));
+        printf("\n  ");
+        PRINTF_FLAG("OF", bool(*flags & 0x800));
+        PRINTF_FLAG("SF", bool(*flags & 0x80));
+        PRINTF_FLAG("DF", bool(*flags & 0x400));
+        printf("\n  ");
+        PRINTF_FLAG("CF", bool(*flags & 1));
+        PRINTF_FLAG("TF", bool(*flags & 0x100));
+        PRINTF_FLAG("IF", bool(*flags & 0x200));
+        printf("\n");
     }
 }

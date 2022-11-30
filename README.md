@@ -14,4 +14,6 @@ Put x32dbg_console.exe with x32dbg.exe together.
 [Crossline](https://github.com/jcwangxp/Crossline) for readline
 
 ## Screenshot
-![](screenshots/screenshot.jpg)
+![](screenshots/screenshot_0.jpg)
+![](screenshots/screenshot_1.jpg)
+![](screenshots/screenshot_2.jpg)

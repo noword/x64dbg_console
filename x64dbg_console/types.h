@@ -8,6 +8,9 @@ typedef unsigned long        duint;
 typedef signed long          dsint;
 #endif //_WIN64
 
+#define MAX_MODULE_SIZE     256
+#define MAX_COMMENT_SIZE    512
+
 typedef enum
 {
     initialized,
@@ -32,7 +35,6 @@ typedef struct
     duint end;
 } SELECTIONDATA;
 
-#define MAX_MODULE_SIZE    256
 typedef struct
 {
     duint base;
@@ -41,15 +43,15 @@ typedef struct
 
 typedef struct
 {
-    const void* data;
+    const void *data;
     duint       size;
 } ICONDATA;
 
 typedef void (*GUICALLBACK)();
-typedef void (*GUICALLBACKEX)(void*);
-typedef bool (*GUISCRIPTEXECUTE)(const char* text);
-typedef void (*GUISCRIPTCOMPLETER)(const char* text, char** entries, int* entryCount);
-typedef bool (*TYPETOSTRING)(const struct _TYPEDESCRIPTOR* type, char* dest, size_t* destCount); //don't change destCount for final failure
+typedef void (*GUICALLBACKEX)(void *);
+typedef bool (*GUISCRIPTEXECUTE)(const char *text);
+typedef void (*GUISCRIPTCOMPLETER)(const char *text, char **entries, int *entryCount);
+typedef bool (*TYPETOSTRING)(const struct _TYPEDESCRIPTOR *type, char *dest, size_t *destCount); //don't change destCount for final failure
 
 typedef struct
 {
@@ -63,13 +65,13 @@ typedef struct
 {
     int    count; //Number of element in the list.
     size_t size;  //Size of list in bytes (used for type checking).
-    void*  data;  //Pointer to the list contents. Must be deleted by the caller using BridgeFree (or BridgeList::Free).
+    void * data;  //Pointer to the list contents. Must be deleted by the caller using BridgeFree (or BridgeList::Free).
 } ListInfo;
 
 typedef struct
 {
     duint    entryPoint; //graph entry point
-    void*    userdata;   //user data
+    void *   userdata;   //user data
     ListInfo nodes;      //graph nodes (BridgeCFNodeList)
 } BridgeCFGraphList;
 
@@ -77,8 +79,8 @@ typedef struct
 
 typedef struct
 {
-    void* titleHwnd;
-    void* classHwnd;
+    void *titleHwnd;
+    void *classHwnd;
     char  title[MAX_STRING_SIZE];
     char  className[MAX_STRING_SIZE];
 } ACTIVEVIEW;
@@ -87,13 +89,13 @@ typedef struct _TYPEDESCRIPTOR
 {
     bool         expanded; //is the type node expanded?
     bool         reverse;  //big endian?
-    const char* name;     //type name (int b)
+    const char * name;     //type name (int b)
     duint        addr;     //virtual address
     duint        offset;   //offset to addr for the actual location
     int          id;       //type id
     int          size;     //sizeof(type)
     TYPETOSTRING callback; //convert to string
-    void* userdata; //user data
+    void *       userdata; //user data
 } TYPEDESCRIPTOR;
 
 typedef enum
@@ -116,11 +118,11 @@ typedef enum
 typedef struct
 {
     DISASM_ARGTYPE type; //normal/memory
-    SEGMENTREG segment;
-    char mnemonic[64];
-    duint constant; //constant in the instruction (imm/disp)
-    duint value; //equal to constant or equal to the register value
-    duint memvalue; //memsize:[value]
+    SEGMENTREG     segment;
+    char           mnemonic[64];
+    duint          constant; //constant in the instruction (imm/disp)
+    duint          value;    //equal to constant or equal to the register value
+    duint          memvalue; //memsize:[value]
 } DISASM_ARG;
 
 typedef enum
@@ -132,12 +134,181 @@ typedef enum
 
 typedef struct
 {
-    char instruction[64];
+    char             instruction[64];
     DISASM_INSTRTYPE type;
-    int argcount;
-    int instr_size;
-    DISASM_ARG arg[3];
+    int              argcount;
+    int              instr_size;
+    DISASM_ARG       arg[3];
 } DISASM_INSTR;
+
+typedef struct DECLSPEC_ALIGN(16) _XMMREGISTER
+{
+    ULONGLONG Low;
+    LONGLONG High;
+} XMMREGISTER;
+
+typedef struct
+{
+    XMMREGISTER Low;  //XMM/SSE part
+    XMMREGISTER High; //AVX part
+} YMMREGISTER;
+
+typedef struct
+{
+    WORD  ControlWord;
+    WORD  StatusWord;
+    WORD  TagWord;
+    DWORD ErrorOffset;
+    DWORD ErrorSelector;
+    DWORD DataOffset;
+    DWORD DataSelector;
+    DWORD Cr0NpxState;
+} X87FPU;
+
+typedef struct
+{
+    ULONG_PTR      cax;
+    ULONG_PTR      ccx;
+    ULONG_PTR      cdx;
+    ULONG_PTR      cbx;
+    ULONG_PTR      csp;
+    ULONG_PTR      cbp;
+    ULONG_PTR      csi;
+    ULONG_PTR      cdi;
+#ifdef _WIN64
+    ULONG_PTR      r8;
+    ULONG_PTR      r9;
+    ULONG_PTR      r10;
+    ULONG_PTR      r11;
+    ULONG_PTR      r12;
+    ULONG_PTR      r13;
+    ULONG_PTR      r14;
+    ULONG_PTR      r15;
+#endif //_WIN64
+    ULONG_PTR      cip;
+    ULONG_PTR      eflags;
+    unsigned short gs;
+    unsigned short fs;
+    unsigned short es;
+    unsigned short ds;
+    unsigned short cs;
+    unsigned short ss;
+    ULONG_PTR      dr0;
+    ULONG_PTR      dr1;
+    ULONG_PTR      dr2;
+    ULONG_PTR      dr3;
+    ULONG_PTR      dr6;
+    ULONG_PTR      dr7;
+    BYTE           RegisterArea[80];
+    X87FPU         x87fpu;
+    DWORD          MxCsr;
+#ifdef _WIN64
+    XMMREGISTER    XmmRegisters[16];
+    YMMREGISTER    YmmRegisters[16];
+#else // x86
+    XMMREGISTER    XmmRegisters[8];
+    YMMREGISTER    YmmRegisters[8];
+#endif
+} REGISTERCONTEXT;
+
+typedef struct
+{
+    bool c;
+    bool p;
+    bool a;
+    bool z;
+    bool s;
+    bool t;
+    bool i;
+    bool d;
+    bool o;
+} FLAGS;
+
+typedef struct
+{
+    BYTE data[10];
+    int  st_value;
+    int  tag;
+} X87FPUREGISTER;
+
+typedef struct
+{
+    bool           FZ;
+    bool           PM;
+    bool           UM;
+    bool           OM;
+    bool           ZM;
+    bool           IM;
+    bool           DM;
+    bool           DAZ;
+    bool           PE;
+    bool           UE;
+    bool           OE;
+    bool           ZE;
+    bool           DE;
+    bool           IE;
+
+    unsigned short RC;
+} MXCSRFIELDS;
+
+typedef struct
+{
+    bool           B;
+    bool           C3;
+    bool           C2;
+    bool           C1;
+    bool           C0;
+    bool           ES;
+    bool           SF;
+    bool           P;
+    bool           U;
+    bool           O;
+    bool           Z;
+    bool           D;
+    bool           I;
+
+    unsigned short TOP;
+} X87STATUSWORDFIELDS;
+
+typedef struct
+{
+    bool           IC;
+    bool           IEM;
+    bool           PM;
+    bool           UM;
+    bool           OM;
+    bool           ZM;
+    bool           DM;
+    bool           IM;
+
+    unsigned short RC;
+    unsigned short PC;
+} X87CONTROLWORDFIELDS;
+
+typedef struct
+{
+    DWORD code;
+    char  name[128];
+} LASTERROR;
+
+typedef struct
+{
+    DWORD code;
+    char  name[128];
+} LASTSTATUS;
+
+typedef struct
+{
+    REGISTERCONTEXT      regcontext;
+    FLAGS                flags;
+    X87FPUREGISTER       x87FPURegisters[8];
+    unsigned long long   mmx[8];
+    MXCSRFIELDS          MxCsrFields;
+    X87STATUSWORDFIELDS  x87StatusWordFields;
+    X87CONTROLWORDFIELDS x87ControlWordFields;
+    LASTERROR            lastError;
+    LASTSTATUS           lastStatus;
+} REGDUMP;
 
 typedef enum
 {
@@ -223,7 +394,7 @@ typedef struct
 {
     int         row;
     int         col;
-    const char* str;
+    const char *str;
 } CELLINFO;
 
 //Gui enums
@@ -348,11 +519,13 @@ typedef enum
 } GUIMSG;
 
 // BRIDGE typedefs
-typedef const wchar_t* (*BRIDGEINIT)();
-typedef const wchar_t* (*BRIDGESTART)();
-typedef bool (*DBGDBGCMDEXEC)(const char* command);
-typedef const char(*DBGINIT)();
+typedef const wchar_t * (*BRIDGEINIT)();
+typedef const wchar_t * (*BRIDGESTART)();
+typedef bool (*DBGDBGCMDEXEC)(const char *command);
+typedef const char (*DBGINIT)();
+typedef bool (*DBGETREGDUMPEX)(REGDUMP *regdump, size_t size);
+typedef bool (*DBGGETCOMMENTAT)(duint addr, char *text);
 
 // DBG typedefs
-typedef duint(*DBGSENDMESSAGE)(DBGMSG type, void* param1, void* param2);
-typedef bool (*DBGMEMREAD)(duint addr, void* dest, duint size, duint* read);
+typedef duint (*DBGSENDMESSAGE)(DBGMSG type, void *param1, void *param2);
+typedef bool (*DBGMEMREAD)(duint addr, void *dest, duint size, duint *read);

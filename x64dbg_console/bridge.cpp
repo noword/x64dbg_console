@@ -31,14 +31,15 @@ bool Bridge::Init()
     GET_ADDRESS(_bridgeModule, BridgeStart);
     GET_ADDRESS(_bridgeModule, DbgInit);
     GET_ADDRESS(_bridgeModule, DbgCmdExec);
+    GET_ADDRESS(_bridgeModule, DbgGetRegDumpEx);
+    GET_ADDRESS(_bridgeModule, DbgGetCommentAt);
+
     GET_ADDRESS(_dbgModule, _dbg_sendmessage);
     GET_ADDRESS(_dbgModule, _dbg_memread);
 
     SET_HOOKER(_guiModule, _gui_translate_text);
     SET_HOOKER(_guiModule, _gui_sendmessage);
     SET_HOOKER(_guiModule, _gui_guiinit);
-
-    _AutoCompleteAdd("quit,exit");
 
     const wchar_t *errormsg = _BridgeInit();
     if (errormsg)
@@ -880,6 +881,8 @@ void completion_hook(char const *buf, crossline_completions_t *pCompletion)
 int Bridge::MainLoop(int argc, char *argv[])
 {
     _DbgInit();
+    _AutoCompleteAdd("quit,exit,registers");
+
     _WaitOutput();
 
     crossline_history_load(HISTORY_FILE);
@@ -893,7 +896,15 @@ int Bridge::MainLoop(int argc, char *argv[])
         {
             break;
         }
-        _DbgExecCmd(cmd);
+        else if (_strcmpi(cmd, "registers") == 0)
+        {
+            _PrintRegisters();
+        }
+        else
+        {
+            _DbgExecCmd(cmd);
+        }
+
         Sleep(200);
 
         _WaitOutput();
